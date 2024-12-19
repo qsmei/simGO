@@ -1,6 +1,5 @@
 # simGO
-A Comprehensive Simulation Framework for Modeling Relationships Among Genotypes, Omics, and Phenotypes
-# blupADC <img src="https://img.shields.io/badge/Issues-%2B-brightgreen.svg" /><img src="https://img.shields.io/badge/license-GPL3.0-blue.svg" /> <img src="https://qsmei-markdown.oss-cn-shanghai.aliyuncs.com/markdown-img/20210617165506.png" alt="logo-blupADC"  height="250" align="right"/>   
+A Comprehensive Simulation Framework for Modeling Relationships Among Genotypes, Omics, and Phenotypes 
 ### R package for simulating genotype data, omics data and phenotype data!
 ## Contents
 
