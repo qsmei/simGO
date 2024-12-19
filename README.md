@@ -36,10 +36,11 @@ if (!require(devtools)) install.packages("devtools")#if devtools not already ins
 #### Install the latest version of simGO
 ```R
 remotes::install_github("qsmei/simGO")
+```
 or
+```R
 devtools::install_github("qsmei/simGO")
 ```
-
 
 After installed successfully, the `simGO` package can be loaded by typing
 
