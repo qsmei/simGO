@@ -29,9 +29,6 @@ If you have suggestion or question, please contact: quanshun1994@gmail.com !
 install.packages(c("Rcpp", "RcppArmadillo","RcppProgress","data.table","bigmemory","R6"))
 if (!require(devtools)) install.packages("devtools")#if devtools not already installed
 ```
-**👉 Note: In the analysis of DMU  and BLUPF90 , we need to download software DMU  ([DMU download website](https://dmu.ghpc.au.dk/dmu/))  and BLUPF90 previously ([BLUPF90 download website](http://nce.ads.uga.edu/html/projects/programs/)). For convenience, we have encapsulated  the basic module of DMU and BLUPF90 in package `blupADC`.**  
-
- **For commercial use of DMU and BLUPF90,  user must contact the author of DMU and BLUPF90 !!!** 
 
 #### Install the latest version of simGO
 ```R
