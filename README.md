@@ -1,6 +1,6 @@
-# simGO
-A Comprehensive Simulation Framework for Modeling Relationships Among Genotypes, Omics, and Phenotypes 
-### R package for simulating genotype data, omics data and phenotype data!
+# simGO <img src="https://img.shields.io/badge/Issues-%2B-brightgreen.svg" /><img src="https://img.shields.io/badge/license-GPL3.0-blue.svg" />
+### A Comprehensive Simulation Framework for Modeling Relationships Among Genotypes, Omics, and Phenotypes 
+ <img src="https://github.com/qsmei/simGO/blob/main/Supplementary/Workflow.jpg" alt="logo-simGO" align="center"/>  
 ## Contents
 
 -   [OVERVIEW](#overview)
