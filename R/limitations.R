@@ -1,0 +1,2 @@
+1. hybrid snps model assumption for different tratis? 
+2. when simultaing genetic correlation, how to defined the number of SNPs in the denominator for the part of genetic correaltion in a mv matrix?  
