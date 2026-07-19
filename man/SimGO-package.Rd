@@ -1,35 +1,16 @@
-\name{SimGO-package}
-\alias{SimGO-package}
-\alias{SimGO}
+\name{simGO-package}
+\alias{simGO-package}
+\alias{simGO}
 \docType{package}
-\title{
-\packageTitle{SimGO}
-}
+\title{Simulation Framework for Genotypes, Omics, and Phenotypes}
 \description{
-\packageDescription{SimGO}
+Tools for simulating relationships among genotypes, omics, and phenotypes.
 }
 \details{
-
-The DESCRIPTION file:
-\packageDESCRIPTION{SimGO}
-\packageIndices{SimGO}
-~~ An overview of how to use the package, including the most important functions ~~
+The \code{simGO} package supports genotype and phenotype simulation as well as
+multi-ancestry polygenic risk score benchmark design.
 }
 \author{
-\packageAuthor{SimGO}
-
-Maintainer: \packageMaintainer{SimGO}
+Quanshun Mei
 }
-\references{
-~~ Literature or other references for background information ~~
-}
-~~ Optionally other standard keywords, one per line, from file KEYWORDS in the R documentation ~~
-~~ directory ~~
-\keyword{ package }
-\seealso{
-~~ Optional links to other man pages, e.g. ~~
-~~ \code{\link[<pkg>:<pkg>-package]{<pkg>}} ~~
-}
-\examples{
-~~ simple examples of the most important functions ~~
-}
+\keyword{package}

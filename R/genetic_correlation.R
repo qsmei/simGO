@@ -1,6 +1,6 @@
 #generate genetic correaltion for multi traits, multi ancestries, 
 #and multi omics features (e.g., correlation between gene expression)
-create_gen_cor<-fucntion(
+create_gen_cor<-function(
                          nSNPs_causal=c(2000,2000), #number of causal SNPs, 
                          nSNPs_causal_shared=1000, # number of shared causal SNPs
                          nSNPs_causal_shared_per=0.5, #percentage of shared causal SNPs
@@ -29,12 +29,5 @@ create_gen_cor<-fucntion(
   
   beta1=rbind(beta_snp_shared[,1],beta_nonshared_1)
   beta2=rbind(beta_snp_shared[,2],beta_nonshared_2)
-  
-}
-  
-  
-  
-  
-  
   
 }

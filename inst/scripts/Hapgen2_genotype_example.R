@@ -1,6 +1,6 @@
 # Genotype-only HAPGEN2 example. No phenotype is generated.
 
-library(SimGO)
+library(simGO)
 
 result <- simulate_1kg_hapgen2(
   reference_path = "/path/to/1KG_HAPGEN2_reference",

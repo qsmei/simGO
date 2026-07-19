@@ -1,6 +1,3 @@
-setwd("/restricted/projectnb/fhs_data/qsmei/Phase3_1000G_imputed/1000GP_Phase3/Hapmap3_1000G/simulation/EUR/Rcpp_code")
-Rcpp::sourceCpp("readbin.cpp")
-Rcpp::sourceCpp("scaleM.cpp")
 simGO<-function(prefix_bin=NULL, #currently only consider .bed .bim .bam format data 
                 #for different ancestries, prefix_bin is a vector 
                 nTraits=1,    #number of simulated traits

@@ -13,7 +13,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // rcpparma_hello_world
 arma::mat rcpparma_hello_world();
-RcppExport SEXP _SimGO_rcpparma_hello_world() {
+RcppExport SEXP _simGO_rcpparma_hello_world() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -23,7 +23,7 @@ END_RCPP
 }
 // rcpparma_outerproduct
 arma::mat rcpparma_outerproduct(const arma::colvec& x);
-RcppExport SEXP _SimGO_rcpparma_outerproduct(SEXP xSEXP) {
+RcppExport SEXP _simGO_rcpparma_outerproduct(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -34,7 +34,7 @@ END_RCPP
 }
 // rcpparma_innerproduct
 double rcpparma_innerproduct(const arma::colvec& x);
-RcppExport SEXP _SimGO_rcpparma_innerproduct(SEXP xSEXP) {
+RcppExport SEXP _simGO_rcpparma_innerproduct(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -45,7 +45,7 @@ END_RCPP
 }
 // rcpparma_bothproducts
 Rcpp::List rcpparma_bothproducts(const arma::colvec& x);
-RcppExport SEXP _SimGO_rcpparma_bothproducts(SEXP xSEXP) {
+RcppExport SEXP _simGO_rcpparma_bothproducts(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -56,14 +56,14 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_SimGO_rcpparma_hello_world", (DL_FUNC) &_SimGO_rcpparma_hello_world, 0},
-    {"_SimGO_rcpparma_outerproduct", (DL_FUNC) &_SimGO_rcpparma_outerproduct, 1},
-    {"_SimGO_rcpparma_innerproduct", (DL_FUNC) &_SimGO_rcpparma_innerproduct, 1},
-    {"_SimGO_rcpparma_bothproducts", (DL_FUNC) &_SimGO_rcpparma_bothproducts, 1},
+    {"_simGO_rcpparma_hello_world", (DL_FUNC) &_simGO_rcpparma_hello_world, 0},
+    {"_simGO_rcpparma_outerproduct", (DL_FUNC) &_simGO_rcpparma_outerproduct, 1},
+    {"_simGO_rcpparma_innerproduct", (DL_FUNC) &_simGO_rcpparma_innerproduct, 1},
+    {"_simGO_rcpparma_bothproducts", (DL_FUNC) &_simGO_rcpparma_bothproducts, 1},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_SimGO(DllInfo *dll) {
+RcppExport void R_init_simGO(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

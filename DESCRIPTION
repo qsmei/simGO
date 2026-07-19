@@ -1,0 +1,28 @@
+Package: simGO
+Type: Package
+Title: Simulation Framework for Genotypes, Omics, and Phenotypes
+Version: 1.0.0
+Authors@R: person("Quanshun", "Mei", email = "quanshun1994@gmail.com", role = c("aut", "cre"))
+Description: Provides tools for simulating genotype, omics, and phenotype data,
+    including workflows for multi-ancestry polygenic risk score benchmarks and
+    HAPGEN2-based genotype simulation.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports:
+    data.table,
+    MASS,
+    Rcpp
+LinkingTo:
+    Rcpp,
+    RcppArmadillo
+Suggests:
+    bigmemory,
+    mvtnorm
+Collate:
+    'RcppExports.R'
+    'functions.R'
+    'genetic_correlation.R'
+    'Hapgen2.R'
+    'PRS_benchmark_design.R'
+    'simGeno.R'

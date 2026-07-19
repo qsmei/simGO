@@ -2,18 +2,17 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 rcpparma_hello_world <- function() {
-    .Call(`_SimGO_rcpparma_hello_world`)
+    .Call(`_simGO_rcpparma_hello_world`)
 }
 
 rcpparma_outerproduct <- function(x) {
-    .Call(`_SimGO_rcpparma_outerproduct`, x)
+    .Call(`_simGO_rcpparma_outerproduct`, x)
 }
 
 rcpparma_innerproduct <- function(x) {
-    .Call(`_SimGO_rcpparma_innerproduct`, x)
+    .Call(`_simGO_rcpparma_innerproduct`, x)
 }
 
 rcpparma_bothproducts <- function(x) {
-    .Call(`_SimGO_rcpparma_bothproducts`, x)
+    .Call(`_simGO_rcpparma_bothproducts`, x)
 }
-
