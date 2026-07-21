@@ -2,21 +2,26 @@
 
 library(simGO)
 
+reference_path <- paste0(
+  "/restricted/projectnb/fhs_data/qsmei/Phase3_1000G_imputed/",
+  "1000GP_Phase3/Hapmap3_1000G"
+)
+
 result <- simulate_1kg_hapgen2(
-  reference_path = paste0(
-    "/restricted/projectnb/fhs_data/qsmei/Phase3_1000G_imputed/",
-    "1000GP_Phase3/Hapmap3_1000G"
-  ),
-  output_path = paste0(
-    "/restricted/projectnb/fhs_data/qsmei/Phase3_1000G_imputed/",
-    "1000GP_Phase3/Hapmap3_1000G/simulation/hapgen2"
-  ),
+  reference_path = reference_path,
+  output_path = file.path(reference_path, "simulation", "hapgen2"),
   ancestries = c("EUR", "EAS"),
   chr_set = 1,
   rep_range = 1,
   sample_size = c(EUR = 60000, EAS = 30000),
   n_cases = 0,
   hapgen2 = "hapgen2",
+  legend_path = file.path(
+    reference_path,
+    "legend"
+  ),
+  map_prefix = "chr",
+  map_suffix = ".map",
   qc = TRUE,
   qc_output_file = "Hapgen2_plink_qc.sh",
   plink = "plink",

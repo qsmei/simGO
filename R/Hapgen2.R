@@ -121,6 +121,7 @@ write_1kg_hapgen2_script <- function(reference_path,
                                      n_cases = 0L,
                                      hapgen2 = "hapgen2",
                                      genetic_map_path = file.path(reference_path, "genetic_map"),
+                                     legend_path = NULL,
                                      hap_prefix = "chr",
                                      legend_prefix = hap_prefix,
                                      map_prefix = "genetic_map_chr",
@@ -145,24 +146,41 @@ write_1kg_hapgen2_script <- function(reference_path,
   reference_path <- path.expand(reference_path)
   output_path <- path.expand(output_path)
   genetic_map_path <- path.expand(genetic_map_path)
+  if (!is.null(legend_path)) {
+    if (!is.character(legend_path) || length(legend_path) != 1L ||
+        is.na(legend_path) || legend_path == "") {
+      stop("legend_path must be NULL or one non-empty directory path.", call. = FALSE)
+    }
+    legend_path <- path.expand(legend_path)
+  }
   output_file <- .simgo_prepare_script_path(output_file)
 
   if (check_files) {
-    required_dirs <- c(reference_path, genetic_map_path)
+    required_dirs <- c(reference_path, genetic_map_path, legend_path)
     missing_dirs <- required_dirs[!dir.exists(required_dirs)]
     if (length(missing_dirs) > 0L) {
       stop("Missing directory: ", paste(missing_dirs, collapse = ", "), call. = FALSE)
     }
 
     required_files <- unlist(lapply(chr_set, function(chr) {
+      hap_files <- file.path(
+        reference_path,
+        ancestries,
+        paste0(hap_prefix, chr, ".hap")
+      )
+      legend_files <- if (is.null(legend_path)) {
+        file.path(
+          reference_path,
+          ancestries,
+          paste0(legend_prefix, chr, ".legend")
+        )
+      } else {
+        file.path(legend_path, paste0(legend_prefix, chr, ".legend"))
+      }
       c(
         file.path(genetic_map_path, paste0(map_prefix, chr, map_suffix)),
-        unlist(lapply(ancestries, function(ancestry) {
-          c(
-            file.path(reference_path, ancestry, paste0(hap_prefix, chr, ".hap")),
-            file.path(reference_path, ancestry, paste0(legend_prefix, chr, ".legend"))
-          )
-        }), use.names = FALSE)
+        hap_files,
+        legend_files
       )
     }), use.names = FALSE)
     missing_files <- required_files[!file.exists(required_files)]
@@ -207,6 +225,7 @@ write_1kg_hapgen2_script <- function(reference_path,
     paste0("REFERENCE_PATH=", shQuote(reference_path)),
     paste0("OUTPUT_PATH=", shQuote(output_path)),
     paste0("GENETIC_MAP_PATH=", shQuote(genetic_map_path)),
+    paste0("LEGEND_PATH=", shQuote(if (is.null(legend_path)) "" else legend_path)),
     paste0("HAPGEN2=", shQuote(hapgen2)),
     paste0("HAP_PREFIX=", shQuote(hap_prefix)),
     paste0("LEGEND_PREFIX=", shQuote(legend_prefix)),
@@ -232,7 +251,11 @@ write_1kg_hapgen2_script <- function(reference_path,
     "      esac",
     "",
     "      hap_file=\"${REFERENCE_PATH}/${i_ancestry}/${HAP_PREFIX}${i_chr}.hap\"",
-    "      legend_file=\"${REFERENCE_PATH}/${i_ancestry}/${LEGEND_PREFIX}${i_chr}.legend\"",
+    "      if [ -n \"${LEGEND_PATH}\" ]; then",
+    "        legend_file=\"${LEGEND_PATH}/${LEGEND_PREFIX}${i_chr}.legend\"",
+    "      else",
+    "        legend_file=\"${REFERENCE_PATH}/${i_ancestry}/${LEGEND_PREFIX}${i_chr}.legend\"",
+    "      fi",
     "      out_dir=\"${OUTPUT_PATH}/rep${i_rep}/${i_ancestry}\"",
     "      out_prefix=\"${out_dir}/${OUTPUT_PREFIX}${i_ancestry}_chr${i_chr}\"",
     "      mkdir -p \"${out_dir}\"",
@@ -391,6 +414,8 @@ simulate_1kg_hapgen2 <- function(reference_path,
                                  # Executable name, or an absolute HAPGEN2 path.
                                  hapgen2 = "hapgen2",
                                  genetic_map_path = file.path(reference_path, "genetic_map"),
+                                 # Optional shared directory containing chrN.legend files.
+                                 legend_path = NULL,
                                  hap_prefix = "chr",
                                  legend_prefix = hap_prefix,
                                  map_prefix = "genetic_map_chr",
@@ -436,6 +461,7 @@ simulate_1kg_hapgen2 <- function(reference_path,
     n_cases = n_cases,
     hapgen2 = hapgen2,
     genetic_map_path = genetic_map_path,
+    legend_path = legend_path,
     hap_prefix = hap_prefix,
     legend_prefix = legend_prefix,
     map_prefix = map_prefix,

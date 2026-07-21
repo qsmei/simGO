@@ -11,6 +11,7 @@ simulate_1kg_hapgen2(reference_path, output_path,
   rep_range = 1L, sample_size = 10000L, n_cases = 0L,
   hapgen2 = "hapgen2",
   genetic_map_path = file.path(reference_path, "genetic_map"),
+  legend_path = NULL,
   hap_prefix = "chr", legend_prefix = hap_prefix,
   map_prefix = "genetic_map_chr",
   map_suffix = "_combined_b37.txt", output_prefix = NULL,
@@ -38,6 +39,7 @@ run_hapgen2_plink_qc(genotype_path,
   \item{n_cases}{Number of simulated cases. Keep zero for quantitative-trait simulations.}
   \item{hapgen2,plink}{Executable name available on \code{PATH}, or an absolute executable path. PLINK 1.x syntax is used.}
   \item{genetic_map_path}{Directory containing chromosome-specific genetic maps.}
+  \item{legend_path}{Optional shared directory containing chromosome legend files. When \code{NULL}, each legend is read from its ancestry directory.}
   \item{hap_prefix,legend_prefix,map_prefix,map_suffix}{Components used to construct reference filenames.}
   \item{output_prefix,prefix}{Optional prefix added to generated genotype filenames.}
   \item{ne}{Named effective population sizes.}
