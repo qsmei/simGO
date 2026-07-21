@@ -12,6 +12,15 @@ prepare_prs_benchmark(genotype_prefixes, phenotype_files, trait_names,
 prepare_primary_prs_benchmark(genotype_prefixes, phenotype_files,
   trait_names, output_dir = "prs_benchmark", seed = 2026L,
   plink = "plink")
+
+create_prs_benchmark_splits(genotype_prefixes,
+  sample_design = simgo_primary_prs_design(),
+  output_dir = "prs_benchmark", seed = 2026L)
+
+write_prs_benchmark_plink_script(genotype_prefixes, phenotype_files,
+  trait_names, sample_design = simgo_primary_prs_design(),
+  output_dir = "prs_benchmark", plink = "plink",
+  script_file = file.path(output_dir, "split_and_gwas.sh"))
 }
 \arguments{
   \item{genotype_prefixes}{Named character vector of PLINK BED prefixes.}
@@ -21,6 +30,7 @@ prepare_primary_prs_benchmark(genotype_prefixes, phenotype_files,
   \item{output_dir}{Directory for keep files, split PLINK files, summary statistics, and scripts.}
   \item{seed}{Integer random seed used for reproducible splitting.}
   \item{plink}{PLINK executable name or path.}
+  \item{script_file}{Path for the generated executable shell script.}
 }
 \value{Invisibly returns the design, sample manifest, and generated shell-script path.}
 \description{

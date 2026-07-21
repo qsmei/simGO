@@ -1,14 +1,14 @@
 \name{simGO-package}
 \alias{simGO-package}
-\alias{simGO}
 \docType{package}
-\title{Simulation Framework for Genotypes, Omics, and Phenotypes}
+\title{Genotype Simulation and Polygenic Score Benchmark Workflows}
 \description{
-Tools for simulating relationships among genotypes, omics, and phenotypes.
+Tools for HAPGEN2 genotype simulation, PLINK quality control, and reproducible
+multi-ancestry polygenic score benchmark preparation.
 }
 \details{
-The \code{simGO} package supports genotype and phenotype simulation as well as
-multi-ancestry polygenic risk score benchmark design.
+Long-running external programs are not started by default. Functions first
+write inspectable shell scripts and execute them only when requested.
 }
 \author{
 Quanshun Mei

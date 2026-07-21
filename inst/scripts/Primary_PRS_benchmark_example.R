@@ -1,7 +1,7 @@
 # Primary EUR/EAS PRS benchmark: EUR 50k/5k/5k and EAS 20k/5k/5k.
 # Replace the four input paths below with the paths on your cluster.
 
-source("R/PRS_benchmark_design.R")
+library(simGO)
 
 genotype_prefixes <- c(
   EUR = "/path/to/genotypes/EUR",

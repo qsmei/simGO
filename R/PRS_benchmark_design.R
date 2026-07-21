@@ -8,13 +8,17 @@ simgo_validate_sample_design <- function(sample_design) {
   }
 
   sample_design <- as.data.frame(sample_design, stringsAsFactors = FALSE)
-  if (anyDuplicated(sample_design$ancestry)) {
-    stop("Each ancestry must occur once in sample_design.", call. = FALSE)
-  }
+  sample_design$ancestry <- .simgo_validate_labels(
+    as.character(sample_design$ancestry),
+    "sample_design$ancestry"
+  )
   size_columns <- c("total", "training", "tuning", "testing")
-  sample_design[size_columns] <- lapply(sample_design[size_columns], as.integer)
-  if (anyNA(sample_design[size_columns]) || any(unlist(sample_design[size_columns]) < 0)) {
-    stop("All sample sizes must be non-negative integers.", call. = FALSE)
+  for (column in size_columns) {
+    sample_design[[column]] <- .simgo_validate_integer_vector(
+      sample_design[[column]],
+      paste0("sample_design$", column),
+      minimum = 0L
+    )
   }
   assigned <- sample_design$training + sample_design$tuning + sample_design$testing
   if (any(assigned != sample_design$total)) {
@@ -35,7 +39,9 @@ simgo_primary_prs_design <- function() {
 }
 
 prs_sample_design <- function(total,
+                              # Defaults to all samples not assigned to tuning/testing.
                               training = NULL,
+                              # May be scalar, ancestry-matched, or named by ancestry.
                               tuning = 5000L,
                               testing = tuning,
                               ancestry = names(total)) {
@@ -43,22 +49,24 @@ prs_sample_design <- function(total,
   if (is.null(ancestry) || length(ancestry) == 0 || any(ancestry == "")) {
     stop("Supply ancestry names or provide a named total vector.", call. = FALSE)
   }
-  ancestry <- as.character(ancestry)
+  ancestry <- .simgo_validate_labels(as.character(ancestry), "ancestry")
   recycle_size <- function(x, name) {
     if (length(x) == 1L) {
-      return(rep(as.integer(x), length(ancestry)))
+      return(.simgo_validate_integer_vector(
+        rep(x, length(ancestry)), name, minimum = 0L
+      ))
     }
     if (!is.null(names(x))) {
       missing <- setdiff(ancestry, names(x))
       if (length(missing) > 0) {
         stop(name, " is missing: ", paste(missing, collapse = ", "), call. = FALSE)
       }
-      return(as.integer(x[ancestry]))
+      return(.simgo_validate_integer_vector(x[ancestry], name, minimum = 0L))
     }
     if (length(x) != length(ancestry)) {
       stop(name, " must have length 1 or match ancestry.", call. = FALSE)
     }
-    as.integer(x)
+    .simgo_validate_integer_vector(x, name, minimum = 0L)
   }
 
   total <- recycle_size(total, "total")
@@ -99,6 +107,7 @@ simgo_read_fam_ids <- function(prefix) {
 create_prs_benchmark_splits <- function(genotype_prefixes,
                                         sample_design = simgo_primary_prs_design(),
                                         output_dir = "prs_benchmark",
+                                        # Reusing the seed reproduces identical splits.
                                         seed = 2026L) {
   sample_design <- simgo_validate_sample_design(sample_design)
   if (is.null(names(genotype_prefixes)) || any(names(genotype_prefixes) == "")) {
@@ -109,6 +118,23 @@ create_prs_benchmark_splits <- function(genotype_prefixes,
   if (length(missing_prefix) > 0) {
     stop("Missing genotype prefix for: ", paste(missing_prefix, collapse = ", "), call. = FALSE)
   }
+  if (anyDuplicated(names(genotype_prefixes))) {
+    stop("genotype_prefixes must not contain duplicated ancestry names.", call. = FALSE)
+  }
+  seed <- .simgo_validate_integer_vector(seed, "seed", minimum = 0L)[1L]
+
+  # Avoid changing the caller's global random-number stream.
+  had_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  if (had_seed) {
+    old_seed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  }
+  on.exit({
+    if (had_seed) {
+      assign(".Random.seed", old_seed, envir = .GlobalEnv)
+    } else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+      rm(".Random.seed", envir = .GlobalEnv)
+    }
+  }, add = TRUE)
 
   keep_dir <- file.path(output_dir, "keep")
   dir.create(keep_dir, recursive = TRUE, showWarnings = FALSE)
@@ -123,13 +149,15 @@ create_prs_benchmark_splits <- function(genotype_prefixes,
            expected, ".", call. = FALSE)
     }
 
-    set.seed(as.integer(seed) + i - 1L)
+    set.seed(seed + i - 1L)
     order_index <- sample.int(expected, expected, replace = FALSE)
     n_train <- sample_design$training[i]
     n_tune <- sample_design$tuning[i]
+    # seq_len() keeps zero-sized splits empty instead of producing invalid ranges.
     train_index <- order_index[seq_len(n_train)]
     tune_index <- order_index[n_train + seq_len(n_tune)]
-    test_index <- order_index[(n_train + n_tune + 1L):expected]
+    n_test <- sample_design$testing[i]
+    test_index <- order_index[n_train + n_tune + seq_len(n_test)]
     split_indices <- list(training = train_index, tuning = tune_index, testing = test_index)
 
     for (split_name in names(split_indices)) {
@@ -158,6 +186,7 @@ write_prs_benchmark_plink_script <- function(genotype_prefixes,
                                              trait_names,
                                              sample_design = simgo_primary_prs_design(),
                                              output_dir = "prs_benchmark",
+                                             # Executable name or absolute PLINK 1.x path.
                                              plink = "plink",
                                              script_file = file.path(output_dir, "split_and_gwas.sh")) {
   sample_design <- simgo_validate_sample_design(sample_design)
@@ -170,6 +199,22 @@ write_prs_benchmark_plink_script <- function(genotype_prefixes,
   }
   if (length(trait_names) == 0 || anyNA(trait_names) || any(trait_names == "")) {
     stop("trait_names must contain at least one phenotype column name.", call. = FALSE)
+  }
+  trait_names <- as.character(trait_names)
+  if (anyDuplicated(trait_names)) {
+    stop("trait_names must not contain duplicates.", call. = FALSE)
+  }
+
+  for (ancestry in ancestries) {
+    plink_files <- paste0(genotype_prefixes[[ancestry]], c(".bed", ".bim", ".fam"))
+    missing_plink_files <- plink_files[!file.exists(plink_files)]
+    if (length(missing_plink_files) > 0L) {
+      stop("Missing PLINK file(s): ", paste(missing_plink_files, collapse = ", "),
+           call. = FALSE)
+    }
+    if (!file.exists(phenotype_files[[ancestry]])) {
+      stop("Missing phenotype file: ", phenotype_files[[ancestry]], call. = FALSE)
+    }
   }
 
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
@@ -203,6 +248,7 @@ write_prs_benchmark_plink_script <- function(genotype_prefixes,
     lines <- c(lines, "")
   }
 
+  script_file <- .simgo_prepare_script_path(script_file)
   writeLines(lines, script_file)
   Sys.chmod(script_file, mode = "0755")
   invisible(normalizePath(script_file, mustWork = FALSE))
@@ -213,7 +259,9 @@ prepare_prs_benchmark <- function(genotype_prefixes,
                                   trait_names,
                                   sample_design,
                                   output_dir = "prs_benchmark",
+                                  # Controls reproducible train/tune/test assignment.
                                   seed = 2026L,
+                                  # Executable name or absolute PLINK 1.x path.
                                   plink = "plink") {
   # General package entry point for ancestry- and trait-agnostic preparation.
   sample_design <- simgo_validate_sample_design(sample_design)

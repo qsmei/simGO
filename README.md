@@ -1,121 +1,91 @@
-# simGO <img src="https://img.shields.io/badge/Issues-%2B-brightgreen.svg" /><img src="https://img.shields.io/badge/license-GPL3.0-blue.svg" />
-### A Comprehensive Simulation Framework for Modeling Relationships Among Genotypes, Omics, and Phenotypes 
- <img src="https://github.com/qsmei/simGO/blob/main/Supplementary/Workflow.jpg" alt="logo-simGO" align="center"/>  
- 
-## Contents
+# simGO
 
--   [OVERVIEW](#overview)
+`simGO` provides reproducible workflows for:
 
--   [GETTING STARTED](#getting-started)
+- simulating ancestry-specific genotypes from 1000 Genomes-style HAPGEN2 references;
+- converting and quality-controlling HAPGEN2 output with PLINK 1.x; and
+- preparing ancestry-specific train, tuning, and test datasets for PRS benchmarks.
 
-    -   [Installation](#installation)
-    -   [Features](#features)
+Older experimental phenotype and omics prototypes are retained under
+`inst/legacy/` for reference, but they are not loaded as package functions.
 
--   [USAGE](#usage)
+## Installation
 
-------------------------------------------------------------------------
-
-### OVERVIEW 
-`simGO` is comprehensive Simulation Framework for Modeling Relationships Among Genotypes, Omics, and Phenotypes
-
-If you have suggestion or question, please contact: quanshun1994@gmail.com ! 
-
-## GETTING STARTED
-
-### 🙊Installation
-
-`simGO` links to R packages `Rcpp`, `RcppArmadillo` , `data.table` and  `bigmemory` .  These dependencies should be installed before installing `simGO`.  
-
-```R
-install.packages(c("Rcpp", "RcppArmadillo","RcppProgress","data.table","bigmemory","R6"))
-if (!require(devtools)) install.packages("devtools")#if devtools not already installed
-```
-
-#### Install the latest version of simGO
-```R
+```r
 remotes::install_github("qsmei/simGO")
-```
-or
-```R
-devtools::install_github("qsmei/simGO")
-```
-
-After installed successfully, the `simGO` package can be loaded by typing
-
-``` {.r}
 library(simGO)
 ```
 
-**Note**: In terms of the relationship matrix construction, we highly recommend Microsoft R Open(faster than traditional R many times)
+HAPGEN2 and PLINK are external programs. If they are available on `PATH`, use
+`hapgen2 = "hapgen2"` and `plink = "plink"`. Otherwise provide their absolute
+executable paths.
 
-### 🙊Features
+## HAPGEN2 genotype simulation
 
--   Feature 1. Generate genotype data
--   Feature 2. Generate omics data
--   Feature 3. Generate phenotype data
+```r
+result <- simulate_1kg_hapgen2(
+  # Root containing EUR/chr1.hap, EUR/chr1.legend, EAS/..., and genetic_map/.
+  reference_path =
+    "/restricted/projectnb/fhs_data/qsmei/Phase3_1000G_imputed/1000GP_Phase3/Hapmap3_1000G",
 
+  # HAPGEN2 outputs are organized as rep1/EUR/, rep1/EAS/, and so on.
+  output_path =
+    "/restricted/projectnb/fhs_data/qsmei/Phase3_1000G_imputed/1000GP_Phase3/Hapmap3_1000G/simulation/hapgen2",
 
-## Usage
+  ancestries = c("EUR", "EAS"),
+  chr_set = 1,
 
-``` {.r}
-system.file("extdata", package = "simGO") # path of provided files
+  # One genotype replication is usually enough when causal effects and
+  # phenotypes are independently replicated for every simulation setting.
+  rep_range = 1,
+  sample_size = c(EUR = 60000, EAS = 30000),
+  n_cases = 0,
+
+  hapgen2 = "hapgen2",
+  plink = "plink",
+
+  qc = TRUE,
+  qc_maf = 0.01,   # Keep variants with MAF >= 1%.
+  qc_hwe = 1e-6,   # Remove variants with HWE P < 1e-6.
+  qc_geno = 0.05,  # Remove variants with >5% missing genotypes.
+  qc_mind = 0.05,  # Remove individuals with >5% missing genotypes.
+  qc_merge = FALSE, # Nothing needs merging for chromosome 1 only.
+
+  check_files = TRUE,
+  run = FALSE       # Write scripts for inspection; execute them later.
+)
+
+result$hapgen2_script
+result$qc_script
 ```
 
-#### Feature 1. Generate genotype data
-``` R
-library(simGO)
-generate_geno(ancestries=c("EUR","EAS"), #ancestries
-              replication=3, #number of replications,
-              chr_set=20, #simulated chrmosomes
-              sample_size=10000,
-              #qulaity control parameters
-              qc_maf=0.05,
-              qc_hwe=1e-7,
-              qc_geno=0.05,
-              qc_mind=0.05,
-              ouput_path=getwd()
-              )
+Run the generated scripts on the cluster:
+
+```bash
+bash Hapgen2.sh
+bash hapgen2_plink_qc.sh
 ```
 
-#### Feature 2. Generate omics data
+For chromosomes 1–22, `qc_merge = TRUE` creates one PLINK dataset per ancestry
+and replication. It combines chromosome columns, never EUR and EAS individuals.
 
-``` R
-library(simGO)
-geno2omics(h2_omics=rep(0.1,367),  #h2 of omics contributed by geno 
-           cov_omics=InterSIM::cov.M, # covariance across omics data
-           mean.omics.cluster=InterSIM::mean.M,
-           n.cluster=4, #cluster of the number of data
-           p.cluster=c(0.25,0.25,0.25,0.25), #proportions of the sample within each cluster
-           delta.omics.cluster=5,
-           align_block_index,
-           p.deomics=0.2, #proportions of the omics features are differentialy expressed
-           geno=genotype_matrix, #omics1 data, should have been scaled 
-           seed=1998
-                  )                 
-```
+## PRS sample design
 
-#### Feature 3. Generate phenotype data
+```r
+design <- prs_sample_design(
+  total = c(EUR = 60000, EAS = 30000),
+  training = c(EUR = 50000, EAS = 20000),
+  tuning = 5000,
+  testing = 5000
+)
 
-``` R
-library(simGO)
-#Sparse
-prefix_bin="/restricted/projectnb/adiposity/qsmei/SimGO/Genotype/EUR/EUR" #example of genotype data
-data1=simGO(prefix_bin=prefix_bin,nTraits=2,
-            h2SNPs=list(0.3,0.5),  #heratability accounted by genotype data 
-            SNPs_archi="Sparse", #Infinite,Sparse,BSLMM,BayesR
-            SNPs_causal_var=1,#Variances of SNPs within each group,
-            pSNPs_causal_var=0.01,#proportions of SNPs with specified variance within each group,correspond to SNPs_var, 
-            #nSNPs_causal_var=1000,#number of SNPs with specified variance within each group,correspond to SNPs_var, 
-            #if input of SNPs(pSNPs_causal_var <1 or nSNPs_causal_var < nSNPs),the rest SNPs are stand for zero-effect SNPs 
-            SNPs_causal_mode="Random", #Random, means random sampling, ignore LD
-            sSNPs_negative=-1, #{√(2pq)}^s, control the degree of negative selection,
-            #pSNPs_causal_shared=0.01,
-            #nSNPs_causal_shared=1000, # number of shared causal SNPs across all causal SNPs
-            SNPs_cor=0.8,
-            Res_cor=0.1,
-            seed=1998,
-            output_prefix = "Sparse_0.3",
-            output_path=getwd() # default is the current working path
-            )
-
+result <- prepare_prs_benchmark(
+  genotype_prefixes = c(EUR = "geno/EUR", EAS = "geno/EAS"),
+  phenotype_files = c(EUR = "phe/EUR.txt", EAS = "phe/EAS.txt"),
+  trait_names = "Phe_Trait1",
+  sample_design = design,
+  output_dir = "prs_benchmark",
+  seed = 2026,
+  plink = "plink"
+)
 ```

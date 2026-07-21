@@ -1,14 +1,15 @@
 \name{simulate_1kg_hapgen2}
 \alias{simulate_1kg_hapgen2}
-\alias{write_1kg_hapgen2_script}
-\alias{hapgen2_ne_defaults}
-\alias{write_hapgen2_plink_qc_script}
 \alias{run_hapgen2_plink_qc}
-\title{Simulate Genotypes from 1000 Genomes Haplotype References}
+\alias{hapgen2_ne_defaults}
+\title{Prepare HAPGEN2 Genotype Simulation and PLINK QC Workflows}
 \usage{
+hapgen2_ne_defaults()
+
 simulate_1kg_hapgen2(reference_path, output_path,
-  ancestries = c("EUR", "EAS"), chr_set = 1:22, rep_range = 1,
-  sample_size = 10000, n_cases = 0, hapgen2 = "hapgen2",
+  ancestries = c("EUR", "EAS"), chr_set = 1:22,
+  rep_range = 1L, sample_size = 10000L, n_cases = 0L,
+  hapgen2 = "hapgen2",
   genetic_map_path = file.path(reference_path, "genetic_map"),
   hap_prefix = "chr", legend_prefix = hap_prefix,
   map_prefix = "genetic_map_chr",
@@ -16,47 +17,62 @@ simulate_1kg_hapgen2(reference_path, output_path,
   ne = hapgen2_ne_defaults(), no_haps_output = TRUE,
   output_file = "Hapgen2.sh", qc = FALSE,
   qc_output_file = "hapgen2_plink_qc.sh", plink = "plink",
-  qc_maf = 0.01, qc_hwe = 1e-6, qc_geno = NULL,
-  qc_mind = NULL, qc_merge = TRUE, run = FALSE,
-  check_files = run)
+  qc_maf = 0.01, qc_hwe = 1e-6, qc_geno = 0.05,
+  qc_mind = 0.05, qc_merge = length(chr_set) > 1L,
+  run = FALSE, check_files = run)
+
+run_hapgen2_plink_qc(genotype_path,
+  ancestries = c("EUR", "EAS"), chr_set = 1:22,
+  rep_range = 1L, prefix = NULL, plink = "plink",
+  maf = 0.01, hwe = 1e-6, geno = 0.05, mind = 0.05,
+  merge = length(chr_set) > 1L,
+  output_file = "hapgen2_plink_qc.sh", run = FALSE)
 }
 \arguments{
-  \item{reference_path}{Directory containing ancestry-specific HAPGEN2 haplotype and legend files.}
-  \item{output_path}{Directory for simulated genotype files.}
-  \item{ancestries}{Population labels matching subdirectories under \code{reference_path}.}
-  \item{chr_set}{Chromosomes to simulate.}
-  \item{rep_range}{Replication identifiers.}
-  \item{sample_size}{A scalar or named ancestry-specific sample-size vector.}
-  \item{n_cases}{Number of case samples; use zero for ordinary quantitative-trait genotype simulation.}
-  \item{hapgen2}{HAPGEN2 executable name or path.}
-  \item{genetic_map_path}{Directory containing genetic maps.}
-  \item{hap_prefix,legend_prefix,map_prefix,map_suffix}{Reference-file naming components.}
-  \item{output_prefix}{Optional prefix added to output filenames.}
+  \item{reference_path}{Root directory containing ancestry subdirectories with HAPGEN2 haplotype and legend files.}
+  \item{output_path,genotype_path}{Directory for simulated genotypes, or an existing HAPGEN2 output directory for standalone QC.}
+  \item{ancestries}{Unique ancestry labels matching subdirectories under the reference and output roots.}
+  \item{chr_set}{Integer chromosomes to simulate or process.}
+  \item{rep_range}{Positive replication identifiers. Use one genotype replication when phenotypes will be replicated separately.}
+  \item{sample_size}{A scalar or ancestry-named vector giving the number of simulated controls.}
+  \item{n_cases}{Number of simulated cases. Keep zero for quantitative-trait simulations.}
+  \item{hapgen2,plink}{Executable name available on \code{PATH}, or an absolute executable path. PLINK 1.x syntax is used.}
+  \item{genetic_map_path}{Directory containing chromosome-specific genetic maps.}
+  \item{hap_prefix,legend_prefix,map_prefix,map_suffix}{Components used to construct reference filenames.}
+  \item{output_prefix,prefix}{Optional prefix added to generated genotype filenames.}
   \item{ne}{Named effective population sizes.}
-  \item{no_haps_output}{Suppress simulated haplotype output when \code{TRUE}.}
-  \item{output_file}{Generated HAPGEN2 shell script.}
-  \item{qc}{Generate a PLINK conversion and QC script.}
-  \item{qc_output_file}{Generated PLINK script.}
-  \item{plink}{PLINK executable name or path.}
-  \item{qc_maf,qc_hwe,qc_geno,qc_mind}{Optional PLINK QC thresholds.}
-  \item{qc_merge}{Merge chromosome-level PLINK files.}
-  \item{run}{Execute generated scripts when \code{TRUE}.}
-  \item{check_files}{Check all required reference files before execution.}
+  \item{no_haps_output}{Suppress HAPGEN2 haplotype output when \code{TRUE}.}
+  \item{output_file,qc_output_file}{Paths for generated executable shell scripts.}
+  \item{qc}{Generate a PLINK conversion and QC script after preparing the HAPGEN2 script.}
+  \item{qc_maf,maf}{Minimum minor-allele frequency retained by PLINK.}
+  \item{qc_hwe,hwe}{Remove variants with Hardy-Weinberg test P-values below this threshold.}
+  \item{qc_geno,geno}{Maximum missing-genotype proportion allowed per variant.}
+  \item{qc_mind,mind}{Maximum missing-genotype proportion allowed per individual.}
+  \item{qc_merge,merge}{Merge chromosome-level PLINK files within each ancestry and replication. The default is \code{FALSE} for one chromosome and \code{TRUE} for multiple chromosomes. Ancestries are never merged.}
+  \item{run}{Execute generated scripts when \code{TRUE}; otherwise only write them.}
+  \item{check_files}{Validate all reference inputs before writing the simulation script.}
 }
-\value{Invisibly returns paths to the generated HAPGEN2 and optional PLINK scripts.}
+\value{
+\code{hapgen2_ne_defaults()} returns a named integer vector.
+\code{simulate_1kg_hapgen2()} invisibly returns script paths and execution
+status. \code{run_hapgen2_plink_qc()} invisibly returns the QC script path.
+}
 \description{
-Generates ancestry-, chromosome-, and replication-aware HAPGEN2 commands using
-1000 Genomes-style haplotype references. The function simulates genotype data
-only; it does not generate phenotypes.
+Creates ancestry-, chromosome-, and replication-aware HAPGEN2 commands and an
+optional PLINK conversion/QC workflow. These functions simulate and process
+genotypes only; they do not generate phenotypes.
 }
 \examples{
 \dontrun{
-simulate_1kg_hapgen2(
-  reference_path = "/data/1kg_hapgen2",
-  output_path = "/data/simulated_genotypes",
+result <- simulate_1kg_hapgen2(
+  reference_path = "/data/Hapmap3_1000G",
+  output_path = "/data/Hapmap3_1000G/simulation/hapgen2",
   ancestries = c("EUR", "EAS"),
+  chr_set = 1,
+  rep_range = 1,
   sample_size = c(EUR = 60000, EAS = 30000),
   qc = TRUE,
+  qc_merge = FALSE,
   run = FALSE
 )
 }
