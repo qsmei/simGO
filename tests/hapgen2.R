@@ -14,8 +14,6 @@ one_chr <- simulate_1kg_hapgen2(
   map_prefix = "chr",
   map_suffix = ".map",
   qc = TRUE,
-  output_file = file.path(work, "hapgen2.sh"),
-  qc_output_file = file.path(work, "qc.sh"),
   check_files = FALSE,
   run = FALSE
 )
@@ -23,11 +21,17 @@ one_chr <- simulate_1kg_hapgen2(
 stopifnot(
   file.exists(one_chr$hapgen2_script),
   file.exists(one_chr$qc_script),
+  dir.exists(file.path(work, "genotypes", "qc")),
+  identical(
+    normalizePath(one_chr$qc_output_path, mustWork = FALSE),
+    normalizePath(file.path(work, "genotypes", "qc"), mustWork = FALSE)
+  ),
   identical(one_chr$executed, FALSE)
 )
 
 qc_lines <- readLines(one_chr$qc_script)
 stopifnot(
+  any(grepl("QC_OUTPUT_PATH=", qc_lines, fixed = TRUE)),
   any(grepl("--maf.*0.01", qc_lines)),
   any(grepl("--geno.*0.05", qc_lines)),
   !any(grepl("sed -E", qc_lines, fixed = TRUE)),

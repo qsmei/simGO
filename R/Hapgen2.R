@@ -285,6 +285,7 @@ write_1kg_hapgen2_script <- function(reference_path,
 }
 
 write_hapgen2_plink_qc_script <- function(genotype_path,
+                                          qc_output_path = file.path(genotype_path, "qc"),
                                           ancestries = c("EUR", "EAS"),
                                           chr_set = 1:22,
                                           rep_range = 1L,
@@ -299,6 +300,13 @@ write_hapgen2_plink_qc_script <- function(genotype_path,
   if (missing(genotype_path)) {
     stop("genotype_path must be provided.", call. = FALSE)
   }
+  if (!is.character(qc_output_path) || length(qc_output_path) != 1L ||
+      is.na(qc_output_path) || qc_output_path == "") {
+    stop("qc_output_path must be one non-empty directory path.", call. = FALSE)
+  }
+  genotype_path <- path.expand(genotype_path)
+  qc_output_path <- path.expand(qc_output_path)
+  dir.create(qc_output_path, recursive = TRUE, showWarnings = FALSE)
   ancestries <- .simgo_validate_labels(ancestries, "ancestries")
   chr_set <- .simgo_validate_integer_vector(chr_set, "chr_set", 1L, 22L)
   if (!is.null(rep_range)) {
@@ -341,11 +349,11 @@ write_hapgen2_plink_qc_script <- function(genotype_path,
   merge_block <- if (merge) {
     c(
       "    if [ ! -s \"${merge_list}\" ]; then",
-      "      echo \"No chromosome datasets were available to merge in ${ancestry_dir}\" >&2",
+      "      echo \"No chromosome datasets were available to merge in ${qc_dir}\" >&2",
       "      exit 1",
       "    fi",
-      "    \"${PLINK}\" --merge-list \"${merge_list}\" --make-bed --allow-no-sex --out \"${PREFIX}${i_ancestry}\"",
-      "    mv \"${merge_list}\" chr_file_list"
+      "    \"${PLINK}\" --merge-list \"${merge_list}\" --make-bed --allow-no-sex --out \"${qc_dir}/${PREFIX}${i_ancestry}\"",
+      "    mv \"${merge_list}\" \"${qc_dir}/chr_file_list\""
     )
   } else {
     character()
@@ -355,7 +363,8 @@ write_hapgen2_plink_qc_script <- function(genotype_path,
     "#!/usr/bin/env bash",
     "set -euo pipefail",
     "",
-    paste0("GENOTYPE_PATH=", shQuote(path.expand(genotype_path))),
+    paste0("GENOTYPE_PATH=", shQuote(genotype_path)),
+    paste0("QC_OUTPUT_PATH=", shQuote(qc_output_path)),
     paste0("PLINK=", shQuote(plink)),
     paste0("PREFIX=", shQuote(prefix_value)),
     paste0("QC_ARGS=(", qc_arg_line, ")"),
@@ -367,20 +376,22 @@ write_hapgen2_plink_qc_script <- function(genotype_path,
     "  for i_ancestry in \"${ANCESTRIES[@]}\"; do",
     "    if [ -n \"${i_rep_dir}\" ]; then",
     "      ancestry_dir=\"${GENOTYPE_PATH}/${i_rep_dir}/${i_ancestry}\"",
+    "      qc_dir=\"${QC_OUTPUT_PATH}/${i_rep_dir}/${i_ancestry}\"",
     "    else",
     "      ancestry_dir=\"${GENOTYPE_PATH}/${i_ancestry}\"",
+    "      qc_dir=\"${QC_OUTPUT_PATH}/${i_ancestry}\"",
     "    fi",
     "    if [ ! -d \"${ancestry_dir}\" ]; then",
     "      echo \"Missing ancestry directory: ${ancestry_dir}\" >&2",
     "      exit 1",
     "    fi",
-    "    cd \"${ancestry_dir}\"",
-    "    merge_list=.simgo_chr_file_list",
+    "    mkdir -p \"${qc_dir}\"",
+    "    merge_list=\"${qc_dir}/.simgo_chr_file_list\"",
     "    rm -f \"${merge_list}\"",
     "",
     "    for chr in \"${CHROMOSOMES[@]}\"; do",
-    "      input_prefix=\"${PREFIX}${i_ancestry}_chr${chr}.controls\"",
-    "      output_prefix=\"${PREFIX}${i_ancestry}_chr${chr}\"",
+    "      input_prefix=\"${ancestry_dir}/${PREFIX}${i_ancestry}_chr${chr}.controls\"",
+    "      output_prefix=\"${qc_dir}/${PREFIX}${i_ancestry}_chr${chr}\"",
     "      if [ ! -f \"${input_prefix}.gen\" ] || [ ! -f \"${input_prefix}.sample\" ]; then",
     "        echo \"Missing Oxford input: ${input_prefix}.gen or ${input_prefix}.sample\" >&2",
     "        exit 1",
@@ -423,10 +434,14 @@ simulate_1kg_hapgen2 <- function(reference_path,
                                  output_prefix = NULL,
                                  ne = hapgen2_ne_defaults(),
                                  no_haps_output = TRUE,
-                                 output_file = "Hapgen2.sh",
+                                 # Defaults to output_path/scripts/Hapgen2.sh.
+                                 output_file = NULL,
                                  # Generate a PLINK conversion/QC script.
                                  qc = FALSE,
-                                 qc_output_file = "hapgen2_plink_qc.sh",
+                                 # Defaults to output_path/scripts/hapgen2_plink_qc.sh.
+                                 qc_output_file = NULL,
+                                 # Defaults to output_path/qc for QC genotype files.
+                                 qc_output_path = NULL,
                                  # Executable name, or an absolute PLINK 1.x path.
                                  plink = "plink",
                                  # Variant and sample QC thresholds.
@@ -443,6 +458,16 @@ simulate_1kg_hapgen2 <- function(reference_path,
   qc <- .simgo_validate_flag(qc, "qc")
   run <- .simgo_validate_flag(run, "run")
   check_files <- .simgo_validate_flag(check_files, "check_files")
+
+  if (is.null(output_file)) {
+    output_file <- file.path(output_path, "scripts", "Hapgen2.sh")
+  }
+  if (qc && is.null(qc_output_file)) {
+    qc_output_file <- file.path(output_path, "scripts", "hapgen2_plink_qc.sh")
+  }
+  if (qc && is.null(qc_output_path)) {
+    qc_output_path <- file.path(output_path, "qc")
+  }
 
   if (run) {
     .simgo_check_executable(hapgen2, "hapgen2")
@@ -477,6 +502,7 @@ simulate_1kg_hapgen2 <- function(reference_path,
   if (qc) {
     qc_script <- write_hapgen2_plink_qc_script(
       genotype_path = output_path,
+      qc_output_path = qc_output_path,
       ancestries = ancestries,
       chr_set = chr_set,
       rep_range = rep_range,
@@ -501,12 +527,14 @@ simulate_1kg_hapgen2 <- function(reference_path,
   invisible(list(
     hapgen2_script = hapgen2_script,
     qc_script = qc_script,
+    qc_output_path = if (qc) normalizePath(qc_output_path, mustWork = FALSE) else NULL,
     executed = run
   ))
 }
 
 # Standalone QC entry point for previously generated HAPGEN2 genotypes.
 run_hapgen2_plink_qc <- function(genotype_path,
+                                 qc_output_path = file.path(genotype_path, "qc"),
                                  ancestries = c("EUR", "EAS"),
                                  chr_set = 1:22,
                                  rep_range = 1L,
@@ -517,14 +545,18 @@ run_hapgen2_plink_qc <- function(genotype_path,
                                  geno = 0.05,
                                  mind = 0.05,
                                  merge = length(chr_set) > 1L,
-                                 output_file = "hapgen2_plink_qc.sh",
+                                 output_file = NULL,
                                  run = FALSE) {
   run <- .simgo_validate_flag(run, "run")
+  if (is.null(output_file)) {
+    output_file <- file.path(genotype_path, "scripts", "hapgen2_plink_qc.sh")
+  }
   if (run) {
     .simgo_check_executable(plink, "plink")
   }
   script_file <- write_hapgen2_plink_qc_script(
     genotype_path = genotype_path,
+    qc_output_path = qc_output_path,
     ancestries = ancestries,
     chr_set = chr_set,
     rep_range = rep_range,

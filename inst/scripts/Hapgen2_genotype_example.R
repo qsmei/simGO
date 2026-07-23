@@ -16,21 +16,21 @@ result <- simulate_1kg_hapgen2(
   sample_size = c(EUR = 60000, EAS = 30000),
   n_cases = 0,
   hapgen2 = "hapgen2",
+  hap_prefix = "Hapmap3_1000GP_Phase3_chr",
   legend_path = file.path(
     reference_path,
     "legend"
   ),
-  map_prefix = "chr",
-  map_suffix = ".map",
+  legend_prefix = "Hapmap3_1000GP_Phase3_chr",
+  map_prefix = "genetic_map_chr",
+  map_suffix = "_combined_b37.txt",
   qc = TRUE,
-  qc_output_file = "Hapgen2_plink_qc.sh",
   plink = "plink",
   qc_maf = 0.01,   # Keep SNPs with minor-allele frequency >= 1%.
   qc_hwe = 1e-6,   # Remove SNPs with HWE P-value < 1e-6.
   qc_geno = 0.05,  # Remove SNPs with >5% missing genotypes.
   qc_mind = 0.05,  # Remove individuals with >5% missing genotypes.
   qc_merge = FALSE, # Nothing needs merging for chromosome 1 only.
-  output_file = "Hapgen2_genotype_simulation.sh",
   check_files = TRUE,
   run = FALSE
 )
