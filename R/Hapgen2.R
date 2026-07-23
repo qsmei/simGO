@@ -71,6 +71,24 @@
   normalizePath(path, mustWork = FALSE)
 }
 
+.simgo_is_absolute_path <- function(path) {
+  grepl("^(/|~|[A-Za-z]:[/\\\\])", path)
+}
+
+.simgo_resolve_script_path <- function(path, root, default_name) {
+  if (is.null(path)) {
+    return(file.path(root, "scripts", default_name))
+  }
+  if (!is.character(path) || length(path) != 1L || is.na(path) || path == "") {
+    stop("Script path must be NULL or one non-empty string.", call. = FALSE)
+  }
+  if (.simgo_is_absolute_path(path)) {
+    path
+  } else {
+    file.path(root, "scripts", path)
+  }
+}
+
 .simgo_check_executable <- function(command, name) {
   if (!is.character(command) || length(command) != 1L || is.na(command) || command == "") {
     stop(name, " must be an executable name or path.", call. = FALSE)
@@ -459,11 +477,13 @@ simulate_1kg_hapgen2 <- function(reference_path,
   run <- .simgo_validate_flag(run, "run")
   check_files <- .simgo_validate_flag(check_files, "check_files")
 
-  if (is.null(output_file)) {
-    output_file <- file.path(output_path, "scripts", "Hapgen2.sh")
-  }
-  if (qc && is.null(qc_output_file)) {
-    qc_output_file <- file.path(output_path, "scripts", "hapgen2_plink_qc.sh")
+  output_file <- .simgo_resolve_script_path(
+    output_file, output_path, "Hapgen2.sh"
+  )
+  if (qc) {
+    qc_output_file <- .simgo_resolve_script_path(
+      qc_output_file, output_path, "hapgen2_plink_qc.sh"
+    )
   }
   if (qc && is.null(qc_output_path)) {
     qc_output_path <- file.path(output_path, "qc")
@@ -548,9 +568,9 @@ run_hapgen2_plink_qc <- function(genotype_path,
                                  output_file = NULL,
                                  run = FALSE) {
   run <- .simgo_validate_flag(run, "run")
-  if (is.null(output_file)) {
-    output_file <- file.path(genotype_path, "scripts", "hapgen2_plink_qc.sh")
-  }
+  output_file <- .simgo_resolve_script_path(
+    output_file, genotype_path, "hapgen2_plink_qc.sh"
+  )
   if (run) {
     .simgo_check_executable(plink, "plink")
   }

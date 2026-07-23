@@ -46,7 +46,7 @@ run_hapgen2_plink_qc(genotype_path,
   \item{output_prefix,prefix}{Optional prefix added to generated genotype filenames.}
   \item{ne}{Named effective population sizes.}
   \item{no_haps_output}{Suppress HAPGEN2 haplotype output when \code{TRUE}.}
-  \item{output_file,qc_output_file}{Optional paths for generated executable shell scripts. When omitted, scripts are written under \code{output_path/scripts}.}
+  \item{output_file,qc_output_file}{Optional paths for generated executable shell scripts. Omitted or relative filenames are written under \code{output_path/scripts}; absolute paths are used unchanged.}
   \item{qc}{Generate a PLINK conversion and QC script after preparing the HAPGEN2 script.}
   \item{qc_maf,maf}{Minimum minor-allele frequency retained by PLINK.}
   \item{qc_hwe,hwe}{Remove variants with Hardy-Weinberg test P-values below this threshold.}

@@ -14,6 +14,8 @@ one_chr <- simulate_1kg_hapgen2(
   map_prefix = "chr",
   map_suffix = ".map",
   qc = TRUE,
+  output_file = "custom-hapgen2.sh",
+  qc_output_file = "custom-qc.sh",
   check_files = FALSE,
   run = FALSE
 )
@@ -21,6 +23,10 @@ one_chr <- simulate_1kg_hapgen2(
 stopifnot(
   file.exists(one_chr$hapgen2_script),
   file.exists(one_chr$qc_script),
+  identical(basename(one_chr$hapgen2_script), "custom-hapgen2.sh"),
+  identical(basename(one_chr$qc_script), "custom-qc.sh"),
+  identical(basename(dirname(one_chr$hapgen2_script)), "scripts"),
+  identical(basename(dirname(one_chr$qc_script)), "scripts"),
   dir.exists(file.path(work, "genotypes", "qc")),
   identical(
     normalizePath(one_chr$qc_output_path, mustWork = FALSE),
