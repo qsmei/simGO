@@ -22,6 +22,9 @@ one_chr <- simulate_1kg_hapgen2(
 stopifnot(
   file.exists(one_chr$hapgen2_script),
   file.exists(one_chr$qc_script),
+  dir.exists(one_chr$output_path),
+  identical(one_chr$hapgen2_script_folder, dirname(one_chr$hapgen2_script)),
+  identical(one_chr$qc_script_folder, dirname(one_chr$qc_script)),
   identical(basename(one_chr$hapgen2_script), "hapgen2_simGO.sh"),
   identical(basename(one_chr$qc_script), "hapgen2_simGO_QC.sh"),
   identical(basename(dirname(one_chr$hapgen2_script)), "custom-scripts"),

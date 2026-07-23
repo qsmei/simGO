@@ -59,7 +59,8 @@ run_hapgen2_plink_qc(genotype_path,
 \value{
 \code{hapgen2_ne_defaults()} returns a named integer vector.
 \code{simulate_1kg_hapgen2()} invisibly returns script paths and execution
-status. \code{run_hapgen2_plink_qc()} invisibly returns the QC script path.
+status, including the output, script, and QC directories.
+\code{run_hapgen2_plink_qc()} invisibly returns the QC script path.
 }
 \description{
 Creates ancestry-, chromosome-, and replication-aware HAPGEN2 commands and an
