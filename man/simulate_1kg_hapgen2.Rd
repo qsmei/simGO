@@ -16,24 +16,25 @@ simulate_1kg_hapgen2(reference_path, output_path,
   map_prefix = "genetic_map_chr",
   map_suffix = "_combined_b37.txt", output_prefix = NULL,
   ne = hapgen2_ne_defaults(), no_haps_output = TRUE,
-  output_file = NULL, qc = FALSE, qc_output_file = NULL,
-  qc_output_path = NULL, plink = "plink",
+  scripts_path = file.path(output_path, "scripts"), qc = FALSE,
+  qc_output_path = file.path(output_path, "qc"), plink = "plink",
   qc_maf = 0.01, qc_hwe = 1e-6, qc_geno = 0.05,
   qc_mind = 0.05, qc_merge = length(chr_set) > 1L,
   run = FALSE, check_files = run)
 
 run_hapgen2_plink_qc(genotype_path,
   qc_output_path = file.path(genotype_path, "qc"),
+  scripts_path = file.path(genotype_path, "scripts"),
   ancestries = c("EUR", "EAS"), chr_set = 1:22,
   rep_range = 1L, prefix = NULL, plink = "plink",
   maf = 0.01, hwe = 1e-6, geno = 0.05, mind = 0.05,
-  merge = length(chr_set) > 1L,
-  output_file = NULL, run = FALSE)
+  merge = length(chr_set) > 1L, run = FALSE)
 }
 \arguments{
   \item{reference_path}{Root directory containing ancestry subdirectories with HAPGEN2 haplotype and legend files.}
   \item{output_path,genotype_path}{Directory for simulated genotypes, or an existing HAPGEN2 output directory for standalone QC.}
   \item{qc_output_path}{Directory for QC-filtered PLINK files. By default, a \code{qc} subdirectory is created under the genotype output directory.}
+  \item{scripts_path}{Directory for generated workflow scripts. By default, a \code{scripts} subdirectory is created under the genotype output directory.}
   \item{ancestries}{Unique ancestry labels matching subdirectories under the reference and output roots.}
   \item{chr_set}{Integer chromosomes to simulate or process.}
   \item{rep_range}{Positive replication identifiers. Use one genotype replication when phenotypes will be replicated separately.}
@@ -46,7 +47,6 @@ run_hapgen2_plink_qc(genotype_path,
   \item{output_prefix,prefix}{Optional prefix added to generated genotype filenames.}
   \item{ne}{Named effective population sizes.}
   \item{no_haps_output}{Suppress HAPGEN2 haplotype output when \code{TRUE}.}
-  \item{output_file,qc_output_file}{Optional paths for generated executable shell scripts. Omitted or relative filenames are written under \code{output_path/scripts}; absolute paths are used unchanged.}
   \item{qc}{Generate a PLINK conversion and QC script after preparing the HAPGEN2 script.}
   \item{qc_maf,maf}{Minimum minor-allele frequency retained by PLINK.}
   \item{qc_hwe,hwe}{Remove variants with Hardy-Weinberg test P-values below this threshold.}

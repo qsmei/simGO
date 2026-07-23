@@ -14,8 +14,7 @@ one_chr <- simulate_1kg_hapgen2(
   map_prefix = "chr",
   map_suffix = ".map",
   qc = TRUE,
-  output_file = "custom-hapgen2.sh",
-  qc_output_file = "custom-qc.sh",
+  scripts_path = file.path(work, "custom-scripts"),
   check_files = FALSE,
   run = FALSE
 )
@@ -23,10 +22,10 @@ one_chr <- simulate_1kg_hapgen2(
 stopifnot(
   file.exists(one_chr$hapgen2_script),
   file.exists(one_chr$qc_script),
-  identical(basename(one_chr$hapgen2_script), "custom-hapgen2.sh"),
-  identical(basename(one_chr$qc_script), "custom-qc.sh"),
-  identical(basename(dirname(one_chr$hapgen2_script)), "scripts"),
-  identical(basename(dirname(one_chr$qc_script)), "scripts"),
+  identical(basename(one_chr$hapgen2_script), "hapgen2_simGO.sh"),
+  identical(basename(one_chr$qc_script), "hapgen2_simGO_QC.sh"),
+  identical(basename(dirname(one_chr$hapgen2_script)), "custom-scripts"),
+  identical(basename(dirname(one_chr$qc_script)), "custom-scripts"),
   dir.exists(file.path(work, "genotypes", "qc")),
   identical(
     normalizePath(one_chr$qc_output_path, mustWork = FALSE),
@@ -55,7 +54,7 @@ multi_chr_qc <- run_hapgen2_plink_qc(
   ancestries = "EUR",
   chr_set = 1:2,
   rep_range = 1,
-  output_file = file.path(work, "qc-multi.sh"),
+  scripts_path = file.path(work, "standalone-scripts"),
   run = FALSE
 )
 stopifnot(any(grepl("--merge-list", readLines(multi_chr_qc), fixed = TRUE)))
@@ -64,7 +63,7 @@ invalid_maf <- try(
   run_hapgen2_plink_qc(
     genotype_path = work,
     maf = 0.8,
-    output_file = file.path(work, "invalid.sh")
+    scripts_path = file.path(work, "invalid-scripts")
   ),
   silent = TRUE
 )

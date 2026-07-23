@@ -71,24 +71,6 @@
   normalizePath(path, mustWork = FALSE)
 }
 
-.simgo_is_absolute_path <- function(path) {
-  grepl("^(/|~|[A-Za-z]:[/\\\\])", path)
-}
-
-.simgo_resolve_script_path <- function(path, root, default_name) {
-  if (is.null(path)) {
-    return(file.path(root, "scripts", default_name))
-  }
-  if (!is.character(path) || length(path) != 1L || is.na(path) || path == "") {
-    stop("Script path must be NULL or one non-empty string.", call. = FALSE)
-  }
-  if (.simgo_is_absolute_path(path)) {
-    path
-  } else {
-    file.path(root, "scripts", path)
-  }
-}
-
 .simgo_check_executable <- function(command, name) {
   if (!is.character(command) || length(command) != 1L || is.na(command) || command == "") {
     stop(name, " must be an executable name or path.", call. = FALSE)
@@ -452,14 +434,12 @@ simulate_1kg_hapgen2 <- function(reference_path,
                                  output_prefix = NULL,
                                  ne = hapgen2_ne_defaults(),
                                  no_haps_output = TRUE,
-                                 # Defaults to output_path/scripts/Hapgen2.sh.
-                                 output_file = NULL,
+                                 # Directory for generated workflow scripts.
+                                 scripts_path = file.path(output_path, "scripts"),
                                  # Generate a PLINK conversion/QC script.
                                  qc = FALSE,
-                                 # Defaults to output_path/scripts/hapgen2_plink_qc.sh.
-                                 qc_output_file = NULL,
-                                 # Defaults to output_path/qc for QC genotype files.
-                                 qc_output_path = NULL,
+                                 # Directory for QC-filtered PLINK files.
+                                 qc_output_path = file.path(output_path, "qc"),
                                  # Executable name, or an absolute PLINK 1.x path.
                                  plink = "plink",
                                  # Variant and sample QC thresholds.
@@ -477,16 +457,22 @@ simulate_1kg_hapgen2 <- function(reference_path,
   run <- .simgo_validate_flag(run, "run")
   check_files <- .simgo_validate_flag(check_files, "check_files")
 
-  output_file <- .simgo_resolve_script_path(
-    output_file, output_path, "Hapgen2.sh"
-  )
-  if (qc) {
-    qc_output_file <- .simgo_resolve_script_path(
-      qc_output_file, output_path, "hapgen2_plink_qc.sh"
-    )
+  if (!is.character(scripts_path) || length(scripts_path) != 1L ||
+      is.na(scripts_path) || scripts_path == "") {
+    stop("scripts_path must be one non-empty directory path.", call. = FALSE)
   }
-  if (qc && is.null(qc_output_path)) {
-    qc_output_path <- file.path(output_path, "qc")
+  scripts_path <- path.expand(scripts_path)
+  dir.create(scripts_path, recursive = TRUE, showWarnings = FALSE)
+  hapgen2_script_file <- file.path(scripts_path, "hapgen2_simGO.sh")
+
+  if (qc) {
+    if (!is.character(qc_output_path) || length(qc_output_path) != 1L ||
+        is.na(qc_output_path) || qc_output_path == "") {
+      stop("qc_output_path must be one non-empty directory path.", call. = FALSE)
+    }
+    qc_output_path <- path.expand(qc_output_path)
+    dir.create(qc_output_path, recursive = TRUE, showWarnings = FALSE)
+    qc_script_file <- file.path(scripts_path, "hapgen2_simGO_QC.sh")
   }
 
   if (run) {
@@ -514,7 +500,7 @@ simulate_1kg_hapgen2 <- function(reference_path,
     output_prefix = output_prefix,
     ne = ne,
     no_haps_output = no_haps_output,
-    output_file = output_file,
+    output_file = hapgen2_script_file,
     check_files = check_files
   )
 
@@ -533,7 +519,7 @@ simulate_1kg_hapgen2 <- function(reference_path,
       geno = qc_geno,
       mind = qc_mind,
       merge = qc_merge,
-      output_file = qc_output_file
+      output_file = qc_script_file
     )
   }
 
@@ -547,6 +533,7 @@ simulate_1kg_hapgen2 <- function(reference_path,
   invisible(list(
     hapgen2_script = hapgen2_script,
     qc_script = qc_script,
+    scripts_path = normalizePath(scripts_path, mustWork = FALSE),
     qc_output_path = if (qc) normalizePath(qc_output_path, mustWork = FALSE) else NULL,
     executed = run
   ))
@@ -555,6 +542,7 @@ simulate_1kg_hapgen2 <- function(reference_path,
 # Standalone QC entry point for previously generated HAPGEN2 genotypes.
 run_hapgen2_plink_qc <- function(genotype_path,
                                  qc_output_path = file.path(genotype_path, "qc"),
+                                 scripts_path = file.path(genotype_path, "scripts"),
                                  ancestries = c("EUR", "EAS"),
                                  chr_set = 1:22,
                                  rep_range = 1L,
@@ -565,12 +553,15 @@ run_hapgen2_plink_qc <- function(genotype_path,
                                  geno = 0.05,
                                  mind = 0.05,
                                  merge = length(chr_set) > 1L,
-                                 output_file = NULL,
                                  run = FALSE) {
   run <- .simgo_validate_flag(run, "run")
-  output_file <- .simgo_resolve_script_path(
-    output_file, genotype_path, "hapgen2_plink_qc.sh"
-  )
+  if (!is.character(scripts_path) || length(scripts_path) != 1L ||
+      is.na(scripts_path) || scripts_path == "") {
+    stop("scripts_path must be one non-empty directory path.", call. = FALSE)
+  }
+  scripts_path <- path.expand(scripts_path)
+  dir.create(scripts_path, recursive = TRUE, showWarnings = FALSE)
+  output_file <- file.path(scripts_path, "hapgen2_simGO_QC.sh")
   if (run) {
     .simgo_check_executable(plink, "plink")
   }
