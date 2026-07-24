@@ -15,6 +15,16 @@ one_chr <- simulate_1kg_hapgen2(
   map_suffix = ".map",
   qc = TRUE,
   scripts_path = file.path(work, "custom-scripts"),
+  job_scheduler = "slurm",
+  job_parameters = list(
+    project = "test-project",
+    memory = "16G",
+    cpus = 2,
+    walltime = "12:00:00",
+    queue = "short",
+    job_name = "test",
+    log_path = file.path(work, "logs")
+  ),
   check_files = FALSE,
   run = FALSE
 )
@@ -43,6 +53,10 @@ stopifnot(
 
 hapgen2_lines <- readLines(file.path(one_chr$scripts_path, "hapgen2_simGO.sh"))
 stopifnot(
+  any(grepl("#SBATCH --job-name=test_hapgen2", hapgen2_lines, fixed = TRUE)),
+  any(grepl("#SBATCH --account=test-project", hapgen2_lines, fixed = TRUE)),
+  any(grepl("#SBATCH --mem=16G", hapgen2_lines, fixed = TRUE)),
+  any(grepl("#SBATCH --cpus-per-task=2", hapgen2_lines, fixed = TRUE)),
   any(grepl("LEGEND_PATH=", hapgen2_lines, fixed = TRUE)),
   any(grepl("MAP_SUFFIX='.map'", hapgen2_lines, fixed = TRUE))
 )

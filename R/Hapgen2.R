@@ -89,6 +89,116 @@
   normalizePath(path, mustWork = TRUE)
 }
 
+.simgo_job_value <- function(x, name) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+  if (length(x) != 1L || is.na(x) || identical(as.character(x), "") ||
+      grepl("[\r\n]", as.character(x))) {
+    stop("job_parameters$", name, " must be one non-empty value.", call. = FALSE)
+  }
+  as.character(x)
+}
+
+.simgo_scheduler_header <- function(job_scheduler,
+                                    job_parameters,
+                                    job_type,
+                                    output_path) {
+  choices <- c("none", "slurm", "sge", "pbs")
+  if (!is.character(job_scheduler) || length(job_scheduler) != 1L ||
+      is.na(job_scheduler) || !(job_scheduler %in% choices)) {
+    stop("job_scheduler must be one of: ", paste(choices, collapse = ", "),
+         ".", call. = FALSE)
+  }
+  if (!is.list(job_parameters)) {
+    stop("job_parameters must be a named list.", call. = FALSE)
+  }
+  if (length(job_parameters) > 0L &&
+      (is.null(names(job_parameters)) || any(names(job_parameters) == ""))) {
+    stop("job_parameters must be a named list.", call. = FALSE)
+  }
+  allowed <- c(
+    "project", "memory", "cpus", "walltime", "queue", "job_name", "log_path"
+  )
+  unknown <- setdiff(names(job_parameters), allowed)
+  if (length(unknown) > 0L) {
+    stop("Unknown job_parameters: ", paste(unknown, collapse = ", "),
+         call. = FALSE)
+  }
+  if (job_scheduler == "none") {
+    if (length(job_parameters) > 0L) {
+      stop("job_parameters requires job_scheduler = 'slurm', 'sge', or 'pbs'.",
+           call. = FALSE)
+    }
+    return(character())
+  }
+
+  project <- .simgo_job_value(job_parameters$project, "project")
+  memory <- .simgo_job_value(job_parameters$memory, "memory")
+  walltime <- .simgo_job_value(job_parameters$walltime, "walltime")
+  queue <- .simgo_job_value(job_parameters$queue, "queue")
+  base_name <- .simgo_job_value(job_parameters$job_name, "job_name")
+  if (is.null(base_name)) {
+    base_name <- "simGO"
+  }
+  job_name <- paste0(base_name, "_", job_type)
+
+  cpus <- job_parameters$cpus
+  if (!is.null(cpus)) {
+    cpus <- .simgo_validate_integer_vector(cpus, "job_parameters$cpus", 1L)[1L]
+  }
+
+  log_path <- job_parameters$log_path
+  if (!is.null(log_path)) {
+    if (!grepl("^(/|~|[A-Za-z]:[/\\\\])", log_path)) {
+      log_path <- file.path(output_path, log_path)
+    }
+    log_path <- .simgo_create_directory(log_path, "job_parameters$log_path")
+  }
+
+  if (job_scheduler == "slurm") {
+    return(c(
+      paste0("#SBATCH --job-name=", job_name),
+      if (!is.null(project)) paste0("#SBATCH --account=", project),
+      if (!is.null(memory)) paste0("#SBATCH --mem=", memory),
+      if (!is.null(cpus)) paste0("#SBATCH --cpus-per-task=", cpus),
+      if (!is.null(walltime)) paste0("#SBATCH --time=", walltime),
+      if (!is.null(queue)) paste0("#SBATCH --partition=", queue),
+      if (!is.null(log_path)) paste0("#SBATCH --output=", log_path, "/%x_%j.out"),
+      if (!is.null(log_path)) paste0("#SBATCH --error=", log_path, "/%x_%j.err")
+    ))
+  }
+
+  if (job_scheduler == "sge") {
+    return(c(
+      paste0("#$ -N ", job_name),
+      if (!is.null(project)) paste0("#$ -P ", project),
+      if (!is.null(memory)) paste0("#$ -l mem_per_core=", memory),
+      if (!is.null(cpus)) paste0("#$ -pe omp ", cpus),
+      if (!is.null(walltime)) paste0("#$ -l h_rt=", walltime),
+      if (!is.null(queue)) paste0("#$ -q ", queue),
+      "#$ -cwd",
+      "#$ -j y",
+      if (!is.null(log_path)) paste0("#$ -o ", log_path)
+    ))
+  }
+
+  select_parts <- c(
+    "select=1",
+    if (!is.null(cpus)) paste0("ncpus=", cpus),
+    if (!is.null(memory)) paste0("mem=", memory)
+  )
+  c(
+    paste0("#PBS -N ", job_name),
+    if (!is.null(project)) paste0("#PBS -A ", project),
+    if (length(select_parts) > 1L) paste0("#PBS -l ", paste(select_parts, collapse = ":")),
+    if (!is.null(walltime)) paste0("#PBS -l walltime=", walltime),
+    if (!is.null(queue)) paste0("#PBS -q ", queue),
+    "#PBS -j oe",
+    if (!is.null(log_path)) paste0("#PBS -o ", log_path)
+  )
+}
+
 .simgo_check_executable <- function(command, name) {
   if (!is.character(command) || length(command) != 1L || is.na(command) || command == "") {
     stop(name, " must be an executable name or path.", call. = FALSE)
@@ -147,6 +257,7 @@ write_1kg_hapgen2_script <- function(reference_path,
                                      output_prefix = NULL,
                                      ne = hapgen2_ne_defaults(),
                                      no_haps_output = TRUE,
+                                     scheduler_header = character(),
                                      output_file = "Hapgen2.sh",
                                      check_files = FALSE) {
   if (missing(reference_path) || missing(output_path)) {
@@ -238,6 +349,7 @@ write_1kg_hapgen2_script <- function(reference_path,
 
   script <- c(
     "#!/usr/bin/env bash",
+    scheduler_header,
     "set -euo pipefail",
     "",
     paste0("REFERENCE_PATH=", shQuote(reference_path)),
@@ -314,6 +426,7 @@ write_hapgen2_plink_qc_script <- function(genotype_path,
                                           geno = 0.05,
                                           mind = 0.05,
                                           merge = length(chr_set) > 1L,
+                                          scheduler_header = character(),
                                           output_file = "hapgen2_plink_qc.sh") {
   if (missing(genotype_path)) {
     stop("genotype_path must be provided.", call. = FALSE)
@@ -378,6 +491,7 @@ write_hapgen2_plink_qc_script <- function(genotype_path,
 
   script <- c(
     "#!/usr/bin/env bash",
+    scheduler_header,
     "set -euo pipefail",
     "",
     paste0("GENOTYPE_PATH=", shQuote(genotype_path)),
@@ -457,6 +571,10 @@ simulate_1kg_hapgen2 <- function(reference_path,
                                  qc = FALSE,
                                  # Directory for QC-filtered PLINK files.
                                  qc_output_path = file.path(output_path, "qc"),
+                                 # Cluster scheduler used for script directives.
+                                 job_scheduler = "none",
+                                 # Scheduler resources such as project, memory and CPUs.
+                                 job_parameters = list(),
                                  # Executable name, or an absolute PLINK 1.x path.
                                  plink = "plink",
                                  # Variant and sample QC thresholds.
@@ -475,6 +593,13 @@ simulate_1kg_hapgen2 <- function(reference_path,
   check_files <- .simgo_validate_flag(check_files, "check_files")
 
   output_path <- .simgo_create_directory(output_path, "output_path")
+
+  hapgen2_scheduler_header <- .simgo_scheduler_header(
+    job_scheduler = job_scheduler,
+    job_parameters = job_parameters,
+    job_type = "hapgen2",
+    output_path = output_path
+  )
 
   scripts_path <- .simgo_create_directory(scripts_path, "scripts_path")
   hapgen2_script_file <- file.path(scripts_path, "hapgen2_simGO.sh")
@@ -509,12 +634,19 @@ simulate_1kg_hapgen2 <- function(reference_path,
     output_prefix = output_prefix,
     ne = ne,
     no_haps_output = no_haps_output,
+    scheduler_header = hapgen2_scheduler_header,
     output_file = hapgen2_script_file,
     check_files = check_files
   )
 
   qc_script <- NULL
   if (qc) {
+    qc_scheduler_header <- .simgo_scheduler_header(
+      job_scheduler = job_scheduler,
+      job_parameters = job_parameters,
+      job_type = "QC",
+      output_path = output_path
+    )
     qc_script <- write_hapgen2_plink_qc_script(
       genotype_path = output_path,
       qc_output_path = qc_output_path,
@@ -528,6 +660,7 @@ simulate_1kg_hapgen2 <- function(reference_path,
       geno = qc_geno,
       mind = qc_mind,
       merge = qc_merge,
+      scheduler_header = qc_scheduler_header,
       output_file = qc_script_file
     )
   }
@@ -550,6 +683,8 @@ simulate_1kg_hapgen2 <- function(reference_path,
 run_hapgen2_plink_qc <- function(genotype_path,
                                  qc_output_path = file.path(genotype_path, "qc"),
                                  scripts_path = file.path(genotype_path, "scripts"),
+                                 job_scheduler = "none",
+                                 job_parameters = list(),
                                  ancestries = c("EUR", "EAS"),
                                  chr_set = 1:22,
                                  rep_range = 1L,
@@ -564,6 +699,12 @@ run_hapgen2_plink_qc <- function(genotype_path,
   run <- .simgo_validate_flag(run, "run")
   scripts_path <- .simgo_create_directory(scripts_path, "scripts_path")
   output_file <- file.path(scripts_path, "hapgen2_simGO_QC.sh")
+  scheduler_header <- .simgo_scheduler_header(
+    job_scheduler = job_scheduler,
+    job_parameters = job_parameters,
+    job_type = "QC",
+    output_path = genotype_path
+  )
   if (run) {
     .simgo_check_executable(plink, "plink")
   }
@@ -580,6 +721,7 @@ run_hapgen2_plink_qc <- function(genotype_path,
     geno = geno,
     mind = mind,
     merge = merge,
+    scheduler_header = scheduler_header,
     output_file = output_file
   )
   if (run) {
