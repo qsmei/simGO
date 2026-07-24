@@ -96,7 +96,9 @@ stopifnot(
   sum(grepl("^#!", custom_hapgen2)) == 1L,
   any(custom_hapgen2 == "#$ -N simGO_hapgen2"),
   any(custom_qc == "#$ -N simGO_QC"),
-  any(custom_hapgen2 == "#$ -l mem_per_core=50G")
+  any(custom_hapgen2 == "#$ -l mem_per_core=50G"),
+  any(custom_hapgen2 == paste0("#$ -o ", custom_result$output_path)),
+  !any(grepl("^#\\$ -e ", custom_hapgen2))
 )
 
 mismatched_scheduler <- try(

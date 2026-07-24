@@ -138,6 +138,34 @@
       stop("Slurm was selected, but job_parameters contains non-Slurm directives.",
            call. = FALSE)
     }
+    # If the user does not specify log destinations, keep scheduler logs with
+    # the analysis output instead of the R submission working directory.
+    if (job_scheduler == "sge") {
+      if (!any(grepl("^#\\$[[:space:]]+-o([[:space:]]|$)", trimmed_header))) {
+        header <- c(header, paste0("#$ -o ", output_path))
+      }
+      merges_output <- any(grepl("^#\\$[[:space:]]+-j[[:space:]]+y", trimmed_header))
+      if (!merges_output &&
+          !any(grepl("^#\\$[[:space:]]+-e([[:space:]]|$)", trimmed_header))) {
+        header <- c(header, paste0("#$ -e ", output_path))
+      }
+    } else if (job_scheduler == "slurm") {
+      if (!any(grepl("^#SBATCH.*(--output|-o)(=|[[:space:]])", trimmed_header))) {
+        header <- c(header, paste0("#SBATCH --output=", output_path, "/%x_%j.log"))
+      }
+      if (!any(grepl("^#SBATCH.*(--error|-e)(=|[[:space:]])", trimmed_header))) {
+        header <- c(header, paste0("#SBATCH --error=", output_path, "/%x_%j.err"))
+      }
+    } else if (job_scheduler == "pbs") {
+      if (!any(grepl("^#PBS[[:space:]]+-o([[:space:]]|$)", trimmed_header))) {
+        header <- c(header, paste0("#PBS -o ", output_path))
+      }
+      merges_output <- any(grepl("^#PBS[[:space:]]+-j[[:space:]]+oe", trimmed_header))
+      if (!merges_output &&
+          !any(grepl("^#PBS[[:space:]]+-e([[:space:]]|$)", trimmed_header))) {
+        header <- c(header, paste0("#PBS -e ", output_path))
+      }
+    }
     return(gsub("\\{job_type\\}", job_type, header))
   }
 
@@ -185,12 +213,14 @@
   }
 
   log_path <- job_parameters$log_path
-  if (!is.null(log_path)) {
+  if (is.null(log_path)) {
+    log_path <- output_path
+  } else {
     if (!grepl("^(/|~|[A-Za-z]:[/\\\\])", log_path)) {
       log_path <- file.path(output_path, log_path)
     }
-    log_path <- .simgo_create_directory(log_path, "job_parameters$log_path")
   }
+  log_path <- .simgo_create_directory(log_path, "job_parameters$log_path")
 
   if (job_scheduler == "slurm") {
     return(c(
