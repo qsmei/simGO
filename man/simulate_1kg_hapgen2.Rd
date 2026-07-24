@@ -37,8 +37,8 @@ run_hapgen2_plink_qc(genotype_path,
   \item{output_path,genotype_path}{Directory for simulated genotypes, or an existing HAPGEN2 output directory for standalone QC.}
   \item{qc_output_path}{Directory for QC-filtered PLINK files. By default, a \code{qc} subdirectory is created under the genotype output directory.}
   \item{scripts_path}{Directory for generated workflow scripts. By default, a \code{scripts} subdirectory is created under the genotype output directory.}
-  \item{job_scheduler}{Scheduler directive format: \code{"none"}, \code{"slurm"}, \code{"sge"}, or \code{"pbs"}.}
-  \item{job_parameters}{Named list of scheduler resources. Supported fields are \code{project}, \code{memory}, \code{cpus}, \code{walltime}, \code{queue}, \code{job_name}, and \code{log_path}.}
+  \item{job_scheduler}{Scheduler directive format: \code{"none"}, \code{"slurm"}, \code{"sge"}, \code{"pbs"}, or \code{"custom"}.}
+  \item{job_parameters}{For standard schedulers, a named list with supported fields \code{project}, \code{memory}, \code{cpus}, \code{walltime}, \code{queue}, \code{job_name}, and \code{log_path}. For \code{job_scheduler = "custom"}, complete scheduler header text or a character vector of header lines. The optional token \code{\{job_type\}} is replaced by \code{hapgen2} or \code{QC}.}
   \item{ancestries}{Unique ancestry labels matching subdirectories under the reference and output roots.}
   \item{chr_set}{Integer chromosomes to simulate or process.}
   \item{rep_range}{Positive replication identifiers. Use one genotype replication when phenotypes will be replicated separately.}

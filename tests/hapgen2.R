@@ -71,6 +71,34 @@ multi_chr_qc <- run_hapgen2_plink_qc(
 )
 stopifnot(any(grepl("--merge-list", readLines(multi_chr_qc), fixed = TRUE)))
 
+custom_work <- tempfile("simgo-custom-header-")
+custom_result <- simulate_1kg_hapgen2(
+  reference_path = file.path(custom_work, "reference"),
+  output_path = file.path(custom_work, "output"),
+  ancestries = "EUR",
+  chr_set = 1,
+  sample_size = 10,
+  qc = TRUE,
+  job_scheduler = "custom",
+  job_parameters = "
+#!/bin/bash
+#$ -P sequencing
+#$ -N simGO_{job_type}
+#$ -j y
+#$ -l mem_per_core=50G
+#$ -pe omp 4
+",
+  check_files = FALSE
+)
+custom_hapgen2 <- readLines(file.path(custom_result$scripts_path, "hapgen2_simGO.sh"))
+custom_qc <- readLines(file.path(custom_result$scripts_path, "hapgen2_simGO_QC.sh"))
+stopifnot(
+  sum(grepl("^#!", custom_hapgen2)) == 1L,
+  any(custom_hapgen2 == "#$ -N simGO_hapgen2"),
+  any(custom_qc == "#$ -N simGO_QC"),
+  any(custom_hapgen2 == "#$ -l mem_per_core=50G")
+)
+
 invalid_maf <- try(
   run_hapgen2_plink_qc(
     genotype_path = work,

@@ -104,14 +104,31 @@
                                     job_parameters,
                                     job_type,
                                     output_path) {
-  choices <- c("none", "slurm", "sge", "pbs")
+  choices <- c("none", "slurm", "sge", "pbs", "custom")
   if (!is.character(job_scheduler) || length(job_scheduler) != 1L ||
       is.na(job_scheduler) || !(job_scheduler %in% choices)) {
     stop("job_scheduler must be one of: ", paste(choices, collapse = ", "),
          ".", call. = FALSE)
   }
+  if (job_scheduler == "custom") {
+    if (!is.character(job_parameters) || length(job_parameters) == 0L ||
+        anyNA(job_parameters)) {
+      stop("For job_scheduler = 'custom', job_parameters must be header text.",
+           call. = FALSE)
+    }
+    header <- unlist(strsplit(job_parameters, "\r?\n"), use.names = FALSE)
+    header <- header[nzchar(trimws(header))]
+    # The generated script already contains one portable Bash shebang.
+    header <- header[!grepl("^#!", trimws(header))]
+    if (length(header) > 0L && any(!grepl("^#", trimws(header)))) {
+      stop("Custom job header lines must begin with '#'.", call. = FALSE)
+    }
+    return(gsub("\\{job_type\\}", job_type, header))
+  }
+
   if (!is.list(job_parameters)) {
-    stop("job_parameters must be a named list.", call. = FALSE)
+    stop("job_parameters must be a named list unless job_scheduler = 'custom'.",
+         call. = FALSE)
   }
   if (length(job_parameters) > 0L &&
       (is.null(names(job_parameters)) || any(names(job_parameters) == ""))) {
