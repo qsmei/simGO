@@ -99,6 +99,21 @@ stopifnot(
   any(custom_hapgen2 == "#$ -l mem_per_core=50G")
 )
 
+mismatched_scheduler <- try(
+  simulate_1kg_hapgen2(
+    reference_path = file.path(custom_work, "reference"),
+    output_path = file.path(custom_work, "mismatch"),
+    ancestries = "EUR",
+    chr_set = 1,
+    sample_size = 10,
+    job_scheduler = "pbs",
+    job_parameters = "#$ -P sequencing",
+    check_files = FALSE
+  ),
+  silent = TRUE
+)
+stopifnot(inherits(mismatched_scheduler, "try-error"))
+
 invalid_maf <- try(
   run_hapgen2_plink_qc(
     genotype_path = work,

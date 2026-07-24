@@ -124,6 +124,20 @@
     if (length(header) > 0L && any(!grepl("^#", trimws(header)))) {
       stop("Custom job header lines must begin with '#'.", call. = FALSE)
     }
+    trimmed_header <- trimws(header)
+    if (job_scheduler == "sge" && any(grepl("^#PBS", trimmed_header))) {
+      stop("SGE was selected, but job_parameters contains PBS directives (#PBS).",
+           call. = FALSE)
+    }
+    if (job_scheduler == "pbs" && any(grepl("^#\\$", trimmed_header))) {
+      stop("PBS was selected, but job_parameters contains SGE directives (#$). Use job_scheduler = 'sge'.",
+           call. = FALSE)
+    }
+    if (job_scheduler == "slurm" &&
+        any(grepl("^#(PBS|\\$)", trimmed_header))) {
+      stop("Slurm was selected, but job_parameters contains non-Slurm directives.",
+           call. = FALSE)
+    }
     return(gsub("\\{job_type\\}", job_type, header))
   }
 
@@ -290,6 +304,19 @@
   job_id <- output[length(output)]
   if (job_scheduler == "slurm") {
     job_id <- sub(";.*$", "", job_id)
+  } else if (job_scheduler == "sge") {
+    # Normally qsub -terse returns only the ID, but support verbose SGE output.
+    if (grepl("Your job[[:space:]]+[0-9]+", job_id)) {
+      job_id <- sub(".*Your job[[:space:]]+([0-9]+).*", "\\1", job_id)
+    } else {
+      job_id <- sub("[[:space:]].*$", "", job_id)
+    }
+  } else if (job_scheduler == "pbs") {
+    # PBS usually returns 12345.server; retain that complete identifier.
+    job_id <- sub("[[:space:]].*$", "", job_id)
+  }
+  if (!grepl("^[A-Za-z0-9_.:-]+$", job_id)) {
+    stop(label, " returned an invalid job ID: ", job_id, call. = FALSE)
   }
   message(label, " submitted as job ", job_id, ".")
   job_id
