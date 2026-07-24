@@ -20,24 +20,19 @@ one_chr <- simulate_1kg_hapgen2(
 )
 
 stopifnot(
-  file.exists(one_chr$hapgen2_script),
-  file.exists(one_chr$qc_script),
+  identical(names(one_chr), c("output_path", "qc_output_path", "scripts_path")),
+  file.exists(file.path(one_chr$scripts_path, "hapgen2_simGO.sh")),
+  file.exists(file.path(one_chr$scripts_path, "hapgen2_simGO_QC.sh")),
   dir.exists(one_chr$output_path),
-  identical(one_chr$hapgen2_script_folder, dirname(one_chr$hapgen2_script)),
-  identical(one_chr$qc_script_folder, dirname(one_chr$qc_script)),
-  identical(basename(one_chr$hapgen2_script), "hapgen2_simGO.sh"),
-  identical(basename(one_chr$qc_script), "hapgen2_simGO_QC.sh"),
-  identical(basename(dirname(one_chr$hapgen2_script)), "custom-scripts"),
-  identical(basename(dirname(one_chr$qc_script)), "custom-scripts"),
+  identical(basename(one_chr$scripts_path), "custom-scripts"),
   dir.exists(file.path(work, "genotypes", "qc")),
   identical(
     normalizePath(one_chr$qc_output_path, mustWork = FALSE),
     normalizePath(file.path(work, "genotypes", "qc"), mustWork = FALSE)
-  ),
-  identical(one_chr$executed, FALSE)
+  )
 )
 
-qc_lines <- readLines(one_chr$qc_script)
+qc_lines <- readLines(file.path(one_chr$scripts_path, "hapgen2_simGO_QC.sh"))
 stopifnot(
   any(grepl("QC_OUTPUT_PATH=", qc_lines, fixed = TRUE)),
   any(grepl("--maf.*0.01", qc_lines)),
@@ -46,7 +41,7 @@ stopifnot(
   !any(grepl("--merge-list", qc_lines, fixed = TRUE))
 )
 
-hapgen2_lines <- readLines(one_chr$hapgen2_script)
+hapgen2_lines <- readLines(file.path(one_chr$scripts_path, "hapgen2_simGO.sh"))
 stopifnot(
   any(grepl("LEGEND_PATH=", hapgen2_lines, fixed = TRUE)),
   any(grepl("MAP_SUFFIX='.map'", hapgen2_lines, fixed = TRUE))

@@ -37,5 +37,5 @@ result <- simulate_1kg_hapgen2(
 
 print(result)
 cat("Run the generated scripts with:\n")
-cat("  bash", result$hapgen2_script, "\n")
-cat("  bash", result$qc_script, "\n")
+cat("  bash", file.path(result$scripts_path, "hapgen2_simGO.sh"), "\n")
+cat("  bash", file.path(result$scripts_path, "hapgen2_simGO_QC.sh"), "\n")

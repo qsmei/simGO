@@ -541,13 +541,8 @@ simulate_1kg_hapgen2 <- function(reference_path,
 
   invisible(list(
     output_path = normalizePath(output_path, mustWork = FALSE),
-    hapgen2_script = hapgen2_script,
-    hapgen2_script_folder = dirname(hapgen2_script),
-    qc_script = qc_script,
-    qc_script_folder = if (is.null(qc_script)) NULL else dirname(qc_script),
-    scripts_path = normalizePath(scripts_path, mustWork = FALSE),
     qc_output_path = if (qc) normalizePath(qc_output_path, mustWork = FALSE) else NULL,
-    executed = run
+    scripts_path = normalizePath(scripts_path, mustWork = FALSE)
   ))
 }
 
