@@ -110,10 +110,11 @@
     stop("job_scheduler must be one of: ", paste(choices, collapse = ", "),
          ".", call. = FALSE)
   }
-  if (job_scheduler == "custom") {
-    if (!is.character(job_parameters) || length(job_parameters) == 0L ||
-        anyNA(job_parameters)) {
-      stop("For job_scheduler = 'custom', job_parameters must be header text.",
+  # Character input is always treated as a complete scheduler header. This
+  # allows cluster-specific directives without requiring a special mode.
+  if (is.character(job_parameters)) {
+    if (length(job_parameters) == 0L || anyNA(job_parameters)) {
+      stop("Character job_parameters must contain scheduler header text.",
            call. = FALSE)
     }
     header <- unlist(strsplit(job_parameters, "\r?\n"), use.names = FALSE)
@@ -126,9 +127,13 @@
     return(gsub("\\{job_type\\}", job_type, header))
   }
 
-  if (!is.list(job_parameters)) {
-    stop("job_parameters must be a named list unless job_scheduler = 'custom'.",
+  if (job_scheduler == "custom") {
+    stop("job_scheduler = 'custom' requires character job_parameters.",
          call. = FALSE)
+  }
+
+  if (!is.list(job_parameters)) {
+    stop("job_parameters must be a named list or scheduler header text.", call. = FALSE)
   }
   if (length(job_parameters) > 0L &&
       (is.null(names(job_parameters)) || any(names(job_parameters) == ""))) {

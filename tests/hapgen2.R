@@ -79,7 +79,7 @@ custom_result <- simulate_1kg_hapgen2(
   chr_set = 1,
   sample_size = 10,
   qc = TRUE,
-  job_scheduler = "custom",
+  job_scheduler = "sge",
   job_parameters = "
 #!/bin/bash
 #$ -P sequencing
