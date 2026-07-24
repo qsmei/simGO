@@ -57,7 +57,7 @@ run_hapgen2_plink_qc(genotype_path,
   \item{qc_geno,geno}{Maximum missing-genotype proportion allowed per variant.}
   \item{qc_mind,mind}{Maximum missing-genotype proportion allowed per individual.}
   \item{qc_merge,merge}{Merge chromosome-level PLINK files within each ancestry and replication. The default is \code{FALSE} for one chromosome and \code{TRUE} for multiple chromosomes. Ancestries are never merged.}
-  \item{run}{Execute generated scripts when \code{TRUE}; otherwise only write them.}
+  \item{run}{When \code{TRUE} with \code{job_scheduler = "none"}, execute scripts directly with Bash. With Slurm, SGE, or PBS, submit the scripts through \code{sbatch} or \code{qsub}; QC is submitted with an after-success dependency. Otherwise, only write the scripts.}
   \item{check_files}{Validate all reference inputs before writing the simulation script.}
 }
 \value{

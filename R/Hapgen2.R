@@ -244,6 +244,57 @@
   invisible(TRUE)
 }
 
+.simgo_submit_script <- function(script_file,
+                                 job_scheduler,
+                                 label,
+                                 dependency = NULL) {
+  if (job_scheduler == "slurm") {
+    command <- "sbatch"
+    args <- c(
+      "--parsable",
+      if (!is.null(dependency)) paste0("--dependency=afterok:", dependency),
+      shQuote(script_file)
+    )
+  } else if (job_scheduler == "sge") {
+    command <- "qsub"
+    args <- c(
+      "-terse",
+      if (!is.null(dependency)) c("-hold_jid", dependency),
+      shQuote(script_file)
+    )
+  } else if (job_scheduler == "pbs") {
+    command <- "qsub"
+    args <- c(
+      if (!is.null(dependency)) c("-W", paste0("depend=afterok:", dependency)),
+      shQuote(script_file)
+    )
+  } else {
+    stop("Automatic submission requires job_scheduler = 'slurm', 'sge', or 'pbs'.",
+         call. = FALSE)
+  }
+
+  .simgo_check_executable(command, command)
+  output <- system2(command, args = args, stdout = TRUE, stderr = TRUE)
+  status <- attr(output, "status")
+  if (is.null(status)) {
+    status <- 0L
+  }
+  if (!identical(as.integer(status), 0L)) {
+    stop(label, " submission failed:\n", paste(output, collapse = "\n"),
+         call. = FALSE)
+  }
+  output <- trimws(output[nzchar(trimws(output))])
+  if (length(output) == 0L) {
+    stop(label, " submission did not return a job ID.", call. = FALSE)
+  }
+  job_id <- output[length(output)]
+  if (job_scheduler == "slurm") {
+    job_id <- sub(";.*$", "", job_id)
+  }
+  message(label, " submitted as job ", job_id, ".")
+  job_id
+}
+
 #' Default HAPGEN2 effective population sizes.
 hapgen2_ne_defaults <- function() {
   c(EUR = 11418L, EAS = 14269L, AMR = 11418L, SAS = 14269L, AFR = 17469L)
@@ -632,9 +683,14 @@ simulate_1kg_hapgen2 <- function(reference_path,
   }
 
   if (run) {
-    .simgo_check_executable(hapgen2, "hapgen2")
-    if (qc) {
-      .simgo_check_executable(plink, "plink")
+    if (job_scheduler == "none") {
+      .simgo_check_executable(hapgen2, "hapgen2")
+      if (qc) {
+        .simgo_check_executable(plink, "plink")
+      }
+    } else if (job_scheduler == "custom") {
+      stop("run = TRUE cannot infer a submission command for job_scheduler = 'custom'.",
+           call. = FALSE)
     }
   }
 
@@ -688,9 +744,23 @@ simulate_1kg_hapgen2 <- function(reference_path,
   }
 
   if (run) {
-    .simgo_run_script(hapgen2_script, "HAPGEN2 simulation")
-    if (!is.null(qc_script)) {
-      .simgo_run_script(qc_script, "PLINK QC")
+    if (job_scheduler == "none") {
+      .simgo_run_script(hapgen2_script, "HAPGEN2 simulation")
+      if (!is.null(qc_script)) {
+        .simgo_run_script(qc_script, "PLINK QC")
+      }
+    } else {
+      hapgen2_job <- .simgo_submit_script(
+        hapgen2_script, job_scheduler, "HAPGEN2 simulation"
+      )
+      if (!is.null(qc_script)) {
+        .simgo_submit_script(
+          qc_script,
+          job_scheduler,
+          "PLINK QC",
+          dependency = hapgen2_job
+        )
+      }
     }
   }
 
@@ -728,7 +798,12 @@ run_hapgen2_plink_qc <- function(genotype_path,
     output_path = genotype_path
   )
   if (run) {
-    .simgo_check_executable(plink, "plink")
+    if (job_scheduler == "none") {
+      .simgo_check_executable(plink, "plink")
+    } else if (job_scheduler == "custom") {
+      stop("run = TRUE cannot infer a submission command for job_scheduler = 'custom'.",
+           call. = FALSE)
+    }
   }
   script_file <- write_hapgen2_plink_qc_script(
     genotype_path = genotype_path,
@@ -747,7 +822,11 @@ run_hapgen2_plink_qc <- function(genotype_path,
     output_file = output_file
   )
   if (run) {
-    .simgo_run_script(script_file, "PLINK QC")
+    if (job_scheduler == "none") {
+      .simgo_run_script(script_file, "PLINK QC")
+    } else {
+      .simgo_submit_script(script_file, job_scheduler, "PLINK QC")
+    }
   }
   invisible(script_file)
 }
